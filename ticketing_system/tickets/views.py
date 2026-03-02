@@ -255,6 +255,39 @@ def machine_edit(request, pk):
     return render(request, 'tickets/machine_form.html', {'form': form, 'machine': machine, 'action': 'Modifier'})
 
 
+@login_required
+def machine_delete(request, pk):
+    """Supprimer une machine (admin uniquement)"""
+    # Vérifier que l'utilisateur est un administrateur
+    if not request.user.is_superuser:
+        messages.error(request, "Seul un administrateur peut supprimer une machine.")
+        return redirect('machine_list')
+    
+    machine = get_object_or_404(Machine, pk=pk)
+    
+    # Compter les éléments associés (pour information seulement)
+    ticket_count = Ticket.objects.filter(machine=machine).count()
+    demande_count = DemandeIntervention.objects.filter(machine=machine).count()
+    intervention_count = InterventionTechnique.objects.filter(numero_demande__machine=machine).count()
+    
+    if request.method == 'POST':
+        # Supprimer la machine et tout ce qui est associé (cascade)
+        machine.delete()
+        messages.success(request, 
+            f"Machine '{machine.nom}' supprimée avec succès. "
+            f"{ticket_count} ticket(s), {demande_count} demande(s) et {intervention_count} intervention(s) ont également été supprimés.")
+        return redirect('machine_list')
+    
+    context = {
+        'machine': machine,
+        'ticket_count': ticket_count,
+        'demande_count': demande_count,
+        'intervention_count': intervention_count,
+        'admin_mode': True,  # Indiquer qu'on est en mode admin
+    }
+    return render(request, 'tickets/machine_delete_confirm.html', context)
+
+
 # ============ Gestion des utilisateurs (Admin uniquement) ============
 
 @login_required
@@ -518,7 +551,27 @@ def intervention_dashboard(request):
 @login_required
 def viee_dashboard(request):
     """Dashboard pour le suivi de vie des équipements"""
-    return render(request, 'tickets/viee_dashboard.html')
+    # Récupérer toutes les machines avec leurs statistiques
+    machines = Machine.objects.filter(actif=True).annotate(
+        nb_tickets=Count('tickets'),
+        nb_ouverts=Count('tickets', filter=Q(tickets__statut__in=['ouvert', 'en_cours'])),
+        nb_critiques=Count('tickets', filter=Q(tickets__priorite='critique', tickets__statut__in=['ouvert', 'en_cours'])),
+        nb_demandes=Count('demandeintervention'),
+        nb_demandes_ouvertes=Count('demandeintervention', filter=Q(demandeintervention__statut__in=['en_attente', 'validee', 'en_cours']))
+    ).order_by('nom')
+    
+    # Récupérer les tickets récents par machine
+    tickets_recents = Ticket.objects.select_related('machine', 'assigne_a').order_by('-date_creation')[:20]
+    
+    # Récupérer les demandes récentes
+    demandes_recentes = DemandeIntervention.objects.select_related('machine').order_by('-date_creation')[:20]
+    
+    context = {
+        'machines': machines,
+        'tickets_recents': tickets_recents,
+        'demandes_recentes': demandes_recentes,
+    }
+    return render(request, 'tickets/viee_dashboard.html', context)
 
 
 @login_required

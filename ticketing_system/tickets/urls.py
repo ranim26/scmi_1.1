@@ -12,6 +12,7 @@ urlpatterns = [
     path('machines/', views.machine_list, name='machine_list'),
     path('machines/nouvelle/', views.machine_create, name='machine_create'),
     path('machines/<int:pk>/modifier/', views.machine_edit, name='machine_edit'),
+    path('machines/<int:pk>/supprimer/', views.machine_delete, name='machine_delete'),
     # Gestion des utilisateurs (Admin uniquement)
     path('utilisateurs/', views.user_list, name='user_list'),
     path('utilisateurs/nouveau/', views.user_create, name='user_create'),

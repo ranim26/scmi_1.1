@@ -45,6 +45,12 @@
                 <a href="{% url 'machine_edit' machine.pk %}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-pencil"></i>
                 </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'machine_delete' machine.pk %}" class="btn btn-sm btn-outline-danger" 
+                   onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette machine ?');">
+                    <i class="bi bi-trash"></i>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

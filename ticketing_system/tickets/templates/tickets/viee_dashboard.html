@@ -19,7 +19,107 @@
     font-weight: 600;
 }
 
-/* Formulaire style tableau */
+/* Cartes machines */
+.machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.machine-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fff;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.machine-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.machine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.machine-name {
+    font-weight: 600;
+    color: #1a2332;
+    font-size: 1.1rem;
+}
+
+.machine-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-good { background: #d4edda; color: #155724; }
+.status-warning { background: #fff3cd; color: #856404; }
+.status-danger { background: #f8d7da; color: #721c24; }
+
+.machine-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.stat-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+/* Tableaux */
+.viee-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 20px;
+}
+
+.viee-table th, .viee-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+}
+
+.viee-table th {
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+}
+
+.viee-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.priority-critique { color: #dc3545; font-weight: bold; }
+.priority-haute { color: #fd7e14; font-weight: bold; }
+.priority-moyenne { color: #ffc107; font-weight: bold; }
+.priority-basse { color: #28a745; }
+
+/* Formulaire intervention */
 .viee-form-table {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
@@ -36,12 +136,6 @@
     border-radius: 4px;
 }
 
-.viee-form-table input:focus, .viee-form-table select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-}
-
 .viee-add-btn {
     background-color: #28a745;
     color: white;
@@ -55,78 +149,11 @@
     background-color: #218838;
 }
 
-/* Tableau historique */
-.viee-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    margin-top: 20px;
-}
-
-.viee-table th, .viee-table td {
-    border: 1px solid #ccc;
-    padding: 10px;
-    text-align: center;
-}
-
-.viee-table th {
-    background-color: #007bff;
-    color: white;
-    font-weight: 600;
-}
-
-.viee-table tr:nth-child(even) {
-    background-color: #f8f9fa;
-}
-
-.viee-delete-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 4px 8px;
-}
-
-.viee-delete-btn:hover {
-    background-color: #c82333;
-}
-
-.viee-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.viee-stats {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.viee-stat-card {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    flex: 1;
-    border-left: 4px solid #007bff;
-}
-
-.viee-stat-number {
-    font-size: 24px;
-    font-weight: bold;
-    color: #007bff;
-}
-
-.viee-stat-label {
-    font-size: 14px;
-    color: #6c757d;
-    margin-top: 5px;
-}
-
 @media (max-width: 768px) {
+    .machine-grid {
+        grid-template-columns: 1fr;
+    }
+    
     .viee-form-table {
         grid-template-columns: repeat(2, 1fr);
         gap: 10px;
@@ -135,109 +162,221 @@
     .viee-form-table input, .viee-form-table select, .viee-form-table button {
         grid-column: span 2;
     }
-    
-    .viee-stats {
-        flex-direction: column;
-    }
-    
-    .viee-table {
-        font-size: 12px;
-    }
-    
-    .viee-table th, .viee-table td {
-        padding: 5px;
-    }
 }
 </style>
 
 <div class="viee-container">
     <h2 class="viee-title">Suivi de vie des équipements</h2>
     
-    <!-- Statistiques -->
-    <div class="viee-stats">
-        <div class="viee-stat-card">
-            <div class="viee-stat-number" id="totalInterventions">0</div>
-            <div class="viee-stat-label">Total interventions</div>
+    <!-- Cartes des machines -->
+    <div class="machine-grid">
+        {% for machine in machines %}
+        <div class="machine-card">
+            <div class="machine-header">
+                <div class="machine-name">{{ machine.nom }}</div>
+                {% if machine.nb_critiques > 0 %}
+                <div class="machine-status status-danger">{{ machine.nb_critiques }} critique{{ machine.nb_critiques|pluralize }}</div>
+                {% elif machine.nb_ouverts > 0 %}
+                <div class="machine-status status-warning">{{ machine.nb_ouverts }} ouvert{{ machine.nb_ouverts|pluralize }}</div>
+                {% else %}
+                <div class="machine-status status-good">Opérationnelle</div>
+                {% endif %}
+            </div>
+            
+            <div class="machine-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ machine.nb_tickets }}</div>
+                    <div class="stat-label">Tickets total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ machine.nb_ouverts }}</div>
+                    <div class="stat-label">Tickets ouverts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ machine.nb_demandes }}</div>
+                    <div class="stat-label">Demandes total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ machine.nb_demandes_ouvertes }}</div>
+                    <div class="stat-label">Demandes ouvertes</div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <a href="{% url 'ticket_list' %}?machine={{ machine.pk }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                    <i class="bi bi-ticket me-1"></i>Voir tickets
+                </a>
+                <a href="{% url 'demande_list' %}?machine={{ machine.pk }}" class="btn btn-sm btn-outline-info flex-grow-1">
+                    <i class="bi bi-clipboard-check me-1"></i>Voir demandes
+                </a>
+            </div>
         </div>
-        <div class="viee-stat-card">
-            <div class="viee-stat-number" id="preventiveCount">0</div>
-            <div class="viee-stat-label">Préventives</div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-cpu" style="font-size:4rem;display:block;margin-bottom:15px;"></i>
+            Aucune machine active trouvée.
         </div>
-        <div class="viee-stat-card">
-            <div class="viee-stat-number" id="curativeCount">0</div>
-            <div class="viee-stat-label">Curatives</div>
+        {% endfor %}
+    </div>
+
+    <!-- Tickets récents -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Tickets récents</h5>
+            <a href="{% url 'ticket_list' %}" class="btn btn-sm btn-outline-primary">Voir tous</a>
         </div>
-        <div class="viee-stat-card">
-            <div class="viee-stat-number" id="thisMonth">0</div>
-            <div class="viee-stat-label">Ce mois</div>
+        <div class="table-responsive">
+            <table class="viee-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Machine</th>
+                        <th>Titre</th>
+                        <th>Priorité</th>
+                        <th>Statut</th>
+                        <th>Créé le</th>
+                        <th>Assigné à</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets_recents %}
+                    <tr>
+                        <td><span class="ticket-num">#{{ ticket.pk }}</span></td>
+                        <td>{{ ticket.machine.nom }}</td>
+                        <td>
+                            <div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                {{ ticket.titre }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="priority-{{ ticket.priorite }}">
+                                {{ ticket.get_priorite_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ ticket.get_statut_class }}">
+                                {{ ticket.get_statut_display }}
+                            </span>
+                        </td>
+                        <td>{{ ticket.date_creation|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if ticket.assigne_a %}
+                                {{ ticket.assigne_a.get_full_name|default:ticket.assigne_a.username }}
+                            {% else %}
+                                Non assigné
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">Aucun ticket récent</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Actions -->
-    <div class="viee-actions">
-        <div>
-            <button class="btn btn-outline-secondary" onclick="exportData()">
-                <i class="bi bi-download"></i> Exporter
-            </button>
-            <button class="btn btn-outline-danger" onclick="clearData()">
-                <i class="bi bi-trash"></i> Vider tout
-            </button>
+    <!-- Demandes récentes -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Demandes d'intervention récentes</h5>
+            <a href="{% url 'demande_list' %}" class="btn btn-sm btn-outline-primary">Voir toutes</a>
         </div>
-        <div>
-            <input type="text" id="searchInput" placeholder="Rechercher..." class="form-control d-inline-block" style="width: 200px;">
+        <div class="table-responsive">
+            <table class="viee-table">
+                <thead>
+                    <tr>
+                        <th>N° Demande</th>
+                        <th>Machine</th>
+                        <th>Nature anomalie</th>
+                        <th>Statut</th>
+                        <th>Créée le</th>
+                        <th>Demandeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in demandes_recentes %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'demande_detail' demande.pk %}" class="fw-bold">
+                                {{ demande.numero_demande }}
+                            </a>
+                        </td>
+                        <td>{{ demande.machine.nom }}</td>
+                        <td>{{ demande.get_nature_anomalie_display }}</td>
+                        <td>
+                            <span class="badge bg-{{ demande.get_statut_class }}">
+                                {{ demande.get_statut_display }}
+                            </span>
+                        </td>
+                        <td>{{ demande.date_creation|date:"d/m/Y H:i" }}</td>
+                        <td>{{ demande.demandeur }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Aucune demande récente</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Formulaire intervention -->
-    <form id="formIntervention" class="viee-form-table">
-        <input type="date" id="date" required>
-        <select id="nature" required>
-            <option value="">Nature</option>
-            <option value="P">P - Préventive</option>
-            <option value="C">C - Curative</option>
-            <option value="CA">CA - Calibrage</option>
-            <option value="E">E - Étalonnage</option>
-            <option value="V">V - Vérification</option>
-        </select>
-        <input type="text" id="description" placeholder="Description" required>
-        <input type="text" id="enregistrement" placeholder="Enregistrement">
-        <input type="text" id="resultat" placeholder="Résultat">
-        <input type="text" id="technicien" placeholder="Technicien">
-        <input type="text" id="signature" placeholder="Signature">
-        <button type="submit" class="viee-add-btn">
-            <i class="bi bi-plus-circle"></i> Ajouter
-        </button>
-    </form>
+    <!-- Formulaire intervention local -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Ajouter une intervention locale</h5>
+        </div>
+        <div class="card-body">
+            <form id="formIntervention" class="viee-form-table">
+                <input type="date" id="date" required>
+                <select id="nature" required>
+                    <option value="">Nature</option>
+                    <option value="P">P - Préventive</option>
+                    <option value="C">C - Curative</option>
+                    <option value="CA">CA - Calibrage</option>
+                    <option value="E">E - Étalonnage</option>
+                    <option value="V">V - Vérification</option>
+                </select>
+                <input type="text" id="description" placeholder="Description" required>
+                <input type="text" id="enregistrement" placeholder="Enregistrement">
+                <input type="text" id="resultat" placeholder="Résultat">
+                <input type="text" id="technicien" placeholder="Technicien">
+                <input type="text" id="signature" placeholder="Signature">
+                <button type="submit" class="viee-add-btn">
+                    <i class="bi bi-plus-circle"></i> Ajouter
+                </button>
+            </form>
 
-    <!-- Tableau historique -->
-    <div class="table-responsive">
-        <table class="viee-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Nature</th>
-                    <th>Description</th>
-                    <th>Enregist.</th>
-                    <th>Résultat</th>
-                    <th>Technicien</th>
-                    <th>Signature</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-    </div>
-    
-    <div id="emptyState" class="text-center text-muted py-5" style="display: none;">
-        <i class="bi bi-inbox" style="font-size: 48px;"></i>
-        <p class="mt-3">Aucune intervention enregistrée</p>
+            <!-- Tableau historique local -->
+            <div class="mt-4">
+                <h6><i class="bi bi-clock-history me-2"></i>Historique local des interventions</h6>
+                <div class="table-responsive">
+                    <table class="viee-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Nature</th>
+                                <th>Description</th>
+                                <th>Enregist.</th>
+                                <th>Résultat</th>
+                                <th>Technicien</th>
+                                <th>Signature</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div id="emptyState" class="text-center text-muted py-4" style="display: none;">
+                    <i class="bi bi-inbox" style="font-size: 48px;"></i>
+                    <p class="mt-3">Aucune intervention locale enregistrée</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
 const tableBody = document.getElementById("tableBody");
 const form = document.getElementById("formIntervention");
-const searchInput = document.getElementById("searchInput");
 const emptyState = document.getElementById("emptyState");
 
 // FORMULAIRE
@@ -256,19 +395,7 @@ form.addEventListener("submit", function(e){
     addRow(data);
     saveData(data);
     form.reset();
-    updateStats();
     date.focus();
-});
-
-// RECHERCHE
-searchInput.addEventListener("input", function() {
-    const searchTerm = this.value.toLowerCase();
-    const rows = tableBody.getElementsByTagName("tr");
-    
-    Array.from(rows).forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? "" : "none";
-    });
 });
 
 // AJOUTER LIGNE
@@ -283,7 +410,7 @@ function addRow(data){
         <td>${data.technicien || '-'}</td>
         <td>${data.signature || '-'}</td>
         <td>
-            <button class="viee-delete-btn" onclick="deleteRow(${data.id})" title="Supprimer">
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteRow(${data.id})" title="Supprimer">
                 <i class="bi bi-trash"></i>
             </button>
         </td>
@@ -303,7 +430,6 @@ function deleteRow(id){
         list = list.filter(item => item.id !== id);
         localStorage.setItem("interventions_viee", JSON.stringify(list));
         
-        updateStats();
         updateEmptyState();
     }
 }
@@ -321,84 +447,13 @@ function loadData(){
     let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
     list.sort((a, b) => new Date(b.date) - new Date(a.date)); // Tri par date décroissante
     list.forEach(addRow);
-    updateStats();
     updateEmptyState();
-}
-
-// MISE À JOUR
-function updateStorage(){
-    let rows = document.querySelectorAll("#tableBody tr");
-    let list = [];
-    rows.forEach(row => {
-        let cells = row.querySelectorAll("td");
-        list.push({
-            id: parseInt(row.querySelector('button').getAttribute('onclick').match(/\d+/)[0]),
-            date: cells[0].innerText,
-            nature: cells[1].innerText.trim(),
-            description: cells[2].innerText,
-            enregistrement: cells[3].innerText,
-            resultat: cells[4].innerText,
-            technicien: cells[5].innerText,
-            signature: cells[6].innerText
-        });
-    });
-    localStorage.setItem("interventions_viee", JSON.stringify(list));
-}
-
-// STATISTIQUES
-function updateStats() {
-    let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
-    
-    document.getElementById('totalInterventions').textContent = list.length;
-    document.getElementById('preventiveCount').textContent = list.filter(i => i.nature === 'P').length;
-    document.getElementById('curativeCount').textContent = list.filter(i => i.nature === 'C').length;
-    
-    // Interventions ce mois
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const thisMonthCount = list.filter(i => {
-        const date = new Date(i.date);
-        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    }).length;
-    document.getElementById('thisMonth').textContent = thisMonthCount;
 }
 
 // ÉTAT VIDE
 function updateEmptyState() {
     const hasData = tableBody.children.length > 0;
     emptyState.style.display = hasData ? 'none' : 'block';
-}
-
-// EXPORTATION
-function exportData() {
-    let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
-    if (list.length === 0) {
-        alert('Aucune donnée à exporter');
-        return;
-    }
-    
-    // Créer CSV
-    let csv = 'Date,Nature,Description,Enregistrement,Résultat,Technicien,Signature\n';
-    list.forEach(item => {
-        csv += `"${item.date}","${getNatureLabel(item.nature)}","${item.description}","${item.enregistrement || ''}","${item.resultat || ''}","${item.technicien || ''}","${item.signature || ''}"\n`;
-    });
-    
-    // Télécharger
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `interventions_viee_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
-// VIDANGE
-function clearData() {
-    if (confirm('Êtes-vous sûr de vouloir supprimer toutes les interventions ? Cette action est irréversible.')) {
-        localStorage.removeItem("interventions_viee");
-        loadData();
-    }
 }
 
 // UTILITAIRES
