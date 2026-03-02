@@ -1,0 +1,40 @@
+{% extends 'tickets/base.html' %}
+{% block title %}Supprimer utilisateur - Ticketing Industriel{% endblock %}
+{% block page_title %}<i class="bi bi-exclamation-triangle me-2"></i>Confirmation de suppression{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="alert alert-warning alert-dismissible" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Attention !</strong> Vous allez supprimer l'utilisateur <strong>{{ user.username }}</strong>.
+            Cette action désactivera le compte et ne pourra pas être facilement annulée.
+        </div>
+        
+        <div class="card border-danger">
+            <div class="card-body">
+                <h5 class="card-title text-danger">
+                    <i class="bi bi-trash me-2"></i>Êtes-vous sûr ?
+                </h5>
+                <p class="card-text">
+                    Utilisateur: <strong>{{ user.username }}</strong><br>
+                    Nom: <strong>{{ user.get_full_name|default:"Non spécifié" }}</strong><br>
+                    Email: <strong>{{ user.email|default:"Non spécifié" }}</strong>
+                </p>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg flex-grow-1">
+                            <i class="bi bi-trash me-2"></i>Confirmer la suppression
+                        </button>
+                        <a href="{% url 'user_list' %}" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-x-circle me-2"></i>Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

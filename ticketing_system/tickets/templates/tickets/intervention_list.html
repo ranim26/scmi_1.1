@@ -1,0 +1,136 @@
+{% extends 'tickets/base.html' %}
+{% load static %}
+
+{% block title %}Liste des Interventions Techniques{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-tools"></i> Interventions Techniques</h1>
+        <div>
+            <a href="{% url 'intervention_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="{% url 'intervention_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouvelle Intervention
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-filter"></i> Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    {{ form.type_technicien.label_tag }}
+                    {{ form.type_technicien }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.numero_demande.label_tag }}
+                    {{ form.numero_demande }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.date_debut.label_tag }}
+                    {{ form.date_debut }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.date_fin.label_tag }}
+                    {{ form.date_fin }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.recherche.label_tag }}
+                    {{ form.recherche }}
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> Rechercher
+                    </button>
+                    <a href="{% url 'intervention_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Effacer
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Résultats -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5><i class="fas fa-list"></i> Liste des Interventions</h5>
+            <span class="badge bg-primary">{{ total }} intervention{{ total|pluralize }}</span>
+        </div>
+        <div class="card-body">
+            {% if interventions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>N° Demande</th>
+                                <th>Machine</th>
+                                <th>Type Technicien</th>
+                                <th>Technicien/Prestataire</th>
+                                <th>Date Prise en Compte</th>
+                                <th>Date Fin</th>
+                                <th>Durée</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for intervention in interventions %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'intervention_detail' intervention.pk %}" class="fw-bold">
+                                        {{ intervention.numero_demande.numero_demande }}
+                                    </a>
+                                </td>
+                                <td>{{ intervention.numero_demande.machine.nom }}</td>
+                                <td>
+                                    <span class="badge badge-{{ 'info' if intervention.type_technicien == 'interne' else 'warning' }}">
+                                        {{ intervention.get_type_technicien_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if intervention.type_technicien == 'interne' %}
+                                        {{ intervention.nom_technicien|default:"-" }}
+                                    {% else %}
+                                        {{ intervention.nom_prestataire|default:"-" }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ intervention.date_prise_en_compte|date:"d/m/Y" }} {{ intervention.heure_prise_en_compte|time:"H:i" }}</td>
+                                <td>
+                                    {% if intervention.date_fin_intervention %}
+                                        {{ intervention.date_fin_intervention|date:"d/m/Y" }} {{ intervention.heure_fin_intervention|time:"H:i" }}
+                                    {% else %}
+                                        <span class="badge badge-warning">En cours</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ intervention.duree_intervention }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'intervention_detail' intervention.pk %}" class="btn btn-sm btn-outline-primary" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'intervention_edit' intervention.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucune intervention trouvée</h5>
+                    <p class="text-muted">Essayez de modifier vos filtres ou <a href="{% url 'intervention_create' %}">créez une nouvelle intervention</a>.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

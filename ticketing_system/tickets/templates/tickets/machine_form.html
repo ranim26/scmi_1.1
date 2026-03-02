@@ -1,0 +1,57 @@
+{% extends 'tickets/base.html' %}
+{% block title %}{{ action }} machine - Ticketing Industriel{% endblock %}
+{% block page_title %}<i class="bi bi-cpu me-2"></i>{{ action }} une machine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="form-card">
+            <h5 class="mb-4"><i class="bi bi-cpu me-2 text-primary"></i>{{ action }} une machine</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Nom de la machine *</label>
+                        {{ form.nom }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Référence *</label>
+                        {{ form.reference }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Localisation / Zone *</label>
+                        {{ form.localisation }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Date d'installation</label>
+                        {{ form.date_installation }}
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end pb-1">
+                        <div class="form-check">
+                            {{ form.actif }}
+                            <label class="form-check-label fw-bold ms-1">Machine active</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Description</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+                <hr class="my-4">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle me-2"></i>{{ action }}
+                    </button>
+                    <a href="{% url 'machine_list' %}" class="btn btn-outline-secondary btn-lg">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-card select, .form-card input[type=text], .form-card input[type=date], .form-card textarea {
+    border-radius: 8px; border: 1px solid #dee2e6; padding: 8px 12px; width: 100%;
+}
+</style>
+{% endblock %}

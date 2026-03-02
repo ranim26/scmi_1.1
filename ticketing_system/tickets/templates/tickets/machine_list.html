@@ -1,0 +1,59 @@
+{% extends 'tickets/base.html' %}
+{% block title %}Machines - Ticketing Industriel{% endblock %}
+{% block page_title %}<i class="bi bi-cpu me-2"></i>Parc machines{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-4">
+    <a href="{% url 'machine_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus me-2"></i>Ajouter une machine
+    </a>
+</div>
+
+<div class="row g-4">
+    {% for machine in machines %}
+    <div class="col-md-4 col-lg-3">
+        <div class="stat-card h-100" style="position:relative;">
+            {% if machine.nb_ouverts > 0 %}
+            <div style="position:absolute;top:15px;right:15px;">
+                <span class="badge bg-danger">{{ machine.nb_ouverts }} panne{{ machine.nb_ouverts|pluralize }}</span>
+            </div>
+            {% endif %}
+            
+            <div style="font-size:2rem;margin-bottom:10px;">
+                {% if machine.actif %}⚙️{% else %}🔴{% endif %}
+            </div>
+            <h6 class="mb-1">{{ machine.nom }}</h6>
+            <p class="text-muted small mb-1">
+                <i class="bi bi-tag me-1"></i>{{ machine.reference }}
+            </p>
+            <p class="text-muted small mb-3">
+                <i class="bi bi-geo-alt me-1"></i>{{ machine.localisation }}
+            </p>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">{{ machine.nb_tickets }} ticket{{ machine.nb_tickets|pluralize }} total</small>
+                <span class="badge {% if machine.actif %}bg-success{% else %}bg-secondary{% endif %}">
+                    {% if machine.actif %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+            
+            <hr class="my-2">
+            <div class="d-flex gap-2">
+                <a href="{% url 'ticket_list' %}?machine={{ machine.pk }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                    <i class="bi bi-ticket me-1"></i>Tickets
+                </a>
+                <a href="{% url 'machine_edit' machine.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="bi bi-cpu" style="font-size:4rem;display:block;margin-bottom:15px;"></i>
+        Aucune machine enregistrée.<br>
+        <a href="{% url 'machine_create' %}" class="btn btn-primary mt-3">Ajouter la première machine</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

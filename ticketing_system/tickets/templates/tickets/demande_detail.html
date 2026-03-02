@@ -1,0 +1,178 @@
+{% extends 'tickets/base.html' %}
+
+{% block title %}Demande {{ demande.numero_demande }}{% endblock %}
+
+{% block page_title %}Demande {{ demande.numero_demande }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-clipboard-check me-2"></i>
+                Demande {{ demande.numero_demande }}
+            </h4>
+            <div class="btn-group">
+                <a href="{% url 'intervention_create_from_demande' demande.pk %}" class="btn btn-success">
+                    <i class="bi bi-tools"></i> Créer une intervention
+                </a>
+                <a href="{% url 'demande_edit' demande.pk %}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                <a href="{% url 'demande_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour à la liste
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informations principales -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations générales</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Numéro de demande</label>
+                        <div class="fw-bold ticket-num">{{ demande.numero_demande }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Statut</label>
+                        <div>
+                            <span class="badge bg-{{ demande.get_statut_class }} fs-6">
+                                {{ demande.get_statut_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Service demandeur</label>
+                        <div>{{ demande.service_demandeur }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Demandeur</label>
+                        <div>{{ demande.demandeur }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Date de demande</label>
+                        <div>{{ demande.date_demande|date:"d/m/Y" }} à {{ demande.heure_demande|time:"H:i" }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Délai souhaité</label>
+                        <div>{{ demande.delai_souhaite|date:"d/m/Y"|default:"Non spécifié" }}</div>
+                    </div>
+                    {% if demande.visa_demandeur %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-muted">Visa du demandeur</label>
+                        <div class="border rounded p-2 bg-light">{{ demande.visa_demandeur }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Machine concernée</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Machine</label>
+                    <div class="fw-bold">{{ demande.machine.nom }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted">Code machine</label>
+                    <div class="font-monospace">{{ demande.code_machine }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted">Localisation</label>
+                    <div>{{ demande.machine.localisation }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Détails de l'anomalie -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Détails de l'anomalie</h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Type d'intervention</label>
+                        <div>
+                            <span class="badge {% if demande.type_intervention %}bg-info{% else %}bg-warning{% endif %} fs-6">
+                                {{ demande.get_type_intervention_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Nature de l'anomalie</label>
+                        <div class="fw-bold">{{ demande.get_nature_anomalie_display }}</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label text-muted">Description de l'anomalie</label>
+                    <div class="border rounded p-3 bg-light">
+                        {{ demande.description_anomalie|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions de statut -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-arrow-repeat me-2"></i>Changer le statut</h6>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    {% for statut_choice in demande.STATUT_CHOICES %}
+                    <a href="{% url 'demande_change_statut' demande.pk statut_choice.0 %}" 
+                       class="btn btn-sm {% if demande.statut == statut_choice.0 %}btn-{{ demande.get_statut_class }}{% else %}btn-outline-secondary{% endif %} status-btn"
+                       onclick="return confirm('Changer le statut en &quot;{{ statut_choice.1 }}&quot; ?')">
+                        {{ statut_choice.1 }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métadonnées -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Informations système</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">Créé le :</small>
+                        <div>{{ demande.date_creation|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">Dernière modification :</small>
+                        <div>{{ demande.date_modification|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

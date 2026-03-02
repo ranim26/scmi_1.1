@@ -1,0 +1,132 @@
+{% extends 'tickets/base.html' %}
+
+{% block title %}Liste des Demandes d'Intervention{% endblock %}
+
+{% block page_title %}Demandes d'Intervention{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-clipboard-check me-2"></i>
+                Demandes d'Intervention
+                <span class="badge bg-secondary ms-2">{{ total }}</span>
+            </h4>
+            <a href="{% url 'demande_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nouvelle demande
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        {{ form.statut.label_tag }}
+                        {{ form.statut }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.nature_anomalie.label_tag }}
+                        {{ form.nature_anomalie }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.service_demandeur.label_tag }}
+                        {{ form.service_demandeur }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.machine.label_tag }}
+                        {{ form.machine }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.type_intervention.label_tag }}
+                        {{ form.type_intervention }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.recherche.label_tag }}
+                        {{ form.recherche }}
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-search"></i> Filtrer
+                        </button>
+                        <a href="{% url 'demande_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau des demandes -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>N° Demande</th>
+                    <th>Date/Heure</th>
+                    <th>Service</th>
+                    <th>Machine</th>
+                    <th>Demandeur</th>
+                    <th>Type</th>
+                    <th>Nature</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for demande in demandes %}
+                <tr>
+                    <td class="ticket-num">{{ demande.numero_demande }}</td>
+                    <td>
+                        <div>{{ demande.date_demande|date:"d/m/Y" }}</div>
+                        <small class="text-muted">{{ demande.heure_demande|time:"H:i" }}</small>
+                    </td>
+                    <td>{{ demande.service_demandeur }}</td>
+                    <td>
+                        <div>{{ demande.machine.nom }}</div>
+                        <small class="text-muted">{{ demande.code_machine }}</small>
+                    </td>
+                    <td>{{ demande.demandeur }}</td>
+                    <td>
+                        <span class="badge {% if demande.type_intervention %}bg-info{% else %}bg-warning{% endif %}">
+                            {{ demande.get_type_intervention_display }}
+                        </span>
+                    </td>
+                    <td>{{ demande.get_nature_anomalie_display }}</td>
+                    <td>
+                        <span class="badge bg-{{ demande.get_statut_class }}">
+                            {{ demande.get_statut_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'demande_detail' demande.pk %}" class="btn btn-outline-primary" title="Voir">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'demande_edit' demande.pk %}" class="btn btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        Aucune demande trouvée
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

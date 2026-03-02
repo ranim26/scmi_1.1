@@ -1,0 +1,308 @@
+{% load permissions %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ticketing Industriel{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #1a2332;
+            --accent: #0d6efd;
+            --danger: #dc3545;
+        }
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a2332 0%, #0d1b2a 100%);
+            min-height: 100vh;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+            max-height: 100vh;
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        .sidebar-brand {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .sidebar-brand h5 { color: #fff; font-weight: 700; font-size: 0.95rem; margin: 0; }
+        .sidebar-brand small { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+        .sidebar-brand .brand-icon {
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, #0d6efd, #0099cc);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 1.5rem; color: white;
+        }
+        .sidebar-section {
+            padding: 10px 15px 5px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 2px 10px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(13,110,253,0.3);
+            color: #fff;
+        }
+        .sidebar .nav-link.active { background: rgba(13,110,253,0.5); }
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+        .user-info { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
+        
+        /* Main content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+        .topbar {
+            background: white;
+            padding: 15px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .page-content { padding: 25px; }
+        
+        /* Cards */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: none;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .stat-icon {
+            width: 50px; height: 50px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+        }
+        .stat-card .stat-number { font-size: 2rem; font-weight: 700; line-height: 1; }
+        .stat-card .stat-label { color: #6c757d; font-size: 0.85rem; }
+        
+        /* Table */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .table-card .card-header {
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        .table th { background: #f8f9fa; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
+        .table td { vertical-align: middle; }
+        .table tbody tr:hover { background: #f8f9fa; }
+        
+        /* Badges */
+        .badge-priorite-critique { background: #dc3545; }
+        .badge-priorite-haute { background: #fd7e14; }
+        .badge-priorite-moyenne { background: #ffc107; color: #000; }
+        .badge-priorite-basse { background: #198754; }
+        
+        /* Ticket number */
+        .ticket-num { font-family: monospace; font-weight: 700; color: #0d6efd; }
+        
+        /* Alert */
+        .alert { border-radius: 10px; border: none; }
+        
+        /* Forms */
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 30px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        
+        /* Status timeline */
+        .status-btn { cursor: pointer; transition: all 0.2s; }
+        .status-btn:hover { transform: scale(1.05); }
+        
+        /* Priority indicator */
+        .priority-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { 
+                width: 70px; 
+                transition: width 0.3s ease;
+            }
+            .sidebar:hover {
+                width: var(--sidebar-width);
+            }
+            .sidebar-brand h5, .sidebar-brand small, .sidebar-section,
+            .sidebar .nav-link span, .sidebar-footer .user-info { 
+                display: none; 
+            }
+            .sidebar:hover .sidebar-brand h5, 
+            .sidebar:hover .sidebar-brand small, 
+            .sidebar:hover .sidebar-section,
+            .sidebar:hover .sidebar .nav-link span, 
+            .sidebar:hover .sidebar-footer .user-info { 
+                display: block; 
+            }
+            .main-content { 
+                margin-left: 70px; 
+                transition: margin-left 0.3s ease;
+            }
+            .sidebar:hover ~ .main-content {
+                margin-left: var(--sidebar-width);
+            }
+            .sidebar-brand .brand-icon { 
+                width: 40px; height: 40px; font-size: 1.2rem; 
+                margin: 0 auto;
+            }
+            .sidebar:hover .sidebar-brand .brand-icon {
+                width: 50px; height: 50px; font-size: 1.5rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+<!-- Sidebar -->
+<div class="sidebar d-flex flex-column">
+    <div class="sidebar-brand flex-shrink-0">
+        <div class="brand-icon"><i class="bi bi-gear-fill"></i></div>
+        <h5>Supervision Industrielle</h5>
+        <small>Système de Ticketing</small>
+    </div>
+
+    <nav class="mt-2 flex-grow-1">
+        <div class="sidebar-section">Navigation</div>
+        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i><span>Tableau de bord</span>
+        </a>
+        <a href="{% url 'ticket_list' %}" class="nav-link {% if 'ticket' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-ticket-detailed"></i><span>Tickets</span>
+        </a>
+        <a href="{% url 'ticket_create' %}" class="nav-link">
+            <i class="bi bi-plus-circle"></i><span>Nouveau ticket</span>
+        </a>
+        <a href="{% url 'demande_dashboard' %}" class="nav-link {% if 'demande' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-clipboard-check"></i><span>Demandes d'intervention</span>
+        </a>
+        <a href="{% url 'intervention_dashboard' %}" class="nav-link {% if 'intervention' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-tools"></i><span>Interventions techniques</span>
+        </a>
+        <a href="{% url 'viee_dashboard' %}" class="nav-link {% if 'viee' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-activity"></i><span>Vie des équipements</span>
+        </a>
+
+        {% if user|is_admin_or_supervisor %}
+        <div class="sidebar-section">Équipements</div>
+        <a href="{% url 'machine_list' %}" class="nav-link {% if 'machine' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-cpu"></i><span>Machines</span>
+        </a>
+        <a href="{% url 'machine_create' %}" class="nav-link">
+            <i class="bi bi-plus-square"></i><span>Ajouter machine</span>
+        </a>
+        {% endif %}
+
+        {% if user.is_staff %}
+        <div class="sidebar-section">Administration</div>
+        <a href="{% url 'user_list' %}" class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-people"></i><span>Utilisateurs</span>
+        </a>
+        <a href="/admin/" class="nav-link">
+            <i class="bi bi-shield-lock"></i><span>Admin Django</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer flex-shrink-0">
+        <div class="user-info">
+            <i class="bi bi-person-circle me-1"></i>
+            <strong>{{ user.get_full_name|default:user.username }}</strong>
+        </div>
+        <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger mt-2 w-100">
+            <i class="bi bi-box-arrow-right"></i> <span>Déconnexion</span>
+        </a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="topbar">
+        <h6 class="mb-0 text-muted">{% block page_title %}{% endblock %}</h6>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'ticket_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Nouveau ticket
+            </a>
+            <span class="text-muted small"><i class="bi bi-person me-1"></i>{{ user.username }}</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="bi bi-info-circle me-2"></i>{{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+{% else %}
+    {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,72 @@
+{% extends 'tickets/base.html' %}
+{% block title %}Gestion des utilisateurs - Ticketing Industriel{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2"></i>Gestion des utilisateurs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-4">
+    <a href="{% url 'user_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus me-2"></i>Créer un utilisateur
+    </a>
+</div>
+
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Nom d'utilisateur</th>
+                    <th>Nom complet</th>
+                    <th>Email</th>
+                    <th>Rôle</th>
+                    <th>Département</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        <span class="ticket-num">{{ user.username }}</span>
+                    </td>
+                    <td>{{ user.get_full_name|default:"-" }}</td>
+                    <td>{{ user.email|default:"-" }}</td>
+                    <td>
+                        {% with profile=user.operatorprofile %}
+                        <span class="badge bg-info">{{ profile.get_role_display }}</span>
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with profile=user.operatorprofile %}
+                        {% if profile.department %}
+                            <span class="badge bg-success">{{ profile.department.nom }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Non assigné</span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        <span class="badge bg-success">Actif</span>
+                    </td>
+                    <td>
+                        <a href="{% url 'user_edit' user.id %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'user_delete' user.id %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                        Aucun utilisateur trouvé.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

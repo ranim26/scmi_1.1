@@ -1,0 +1,146 @@
+{% extends 'tickets/base.html' %}
+{% block title %}{{ action }} ticket - Ticketing Industriel{% endblock %}
+{% block page_title %}
+    <i class="bi bi-ticket me-2"></i>{{ action }} un ticket
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="form-card">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if action == 'Créer' %}plus-circle{% else %}pencil{% endif %} me-2 text-primary"></i>
+                    {{ action }} un ticket de panne
+                </h5>
+                {% if ticket %}
+                <span class="ticket-num">#{{ ticket.pk }}</span>
+                {% endif %}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors or form.errors %}
+                <div class="alert alert-danger">
+                    {% if form.non_field_errors %}
+                        <ul class="mb-0">{% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}</ul>
+                    {% endif %}
+                    {% for field in form %}
+                        {% for err in field.errors %}
+                            <div><strong>{{ field.label }}:</strong> {{ err }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Titre *</label>
+                        {{ form.titre }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Catégorie de ticket *</label>
+                        {{ form.categorie_ticket }}
+                    </div>
+                    <div class="col-md-6" id="machine-field">
+                        <label class="form-label fw-bold">Machine <span id="machine-required">*</span></label>
+                        {{ form.machine }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Type de panne *</label>
+                        {{ form.type_panne }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Priorité *</label>
+                        {{ form.priorite }}
+                    </div>
+                    {% if action == 'Modifier' %}
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Statut *</label>
+                        {{ form.statut }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Assigné à</label>
+                        {{ form.assigne_a }}
+                    </div>
+                    {% endif %}
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Description de la panne *</label>
+                        {{ form.description }}
+                        {% for err in form.description.errors %}
+                            <div class="text-danger small">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    {% if action == 'Modifier' %}
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Solution appliquée</label>
+                        {{ form.solution }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Pièces remplacées</label>
+                        {{ form.pieces_remplacees }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Temps d'intervention (min)</label>
+                        {{ form.temps_intervention }}
+                    </div>
+                    {% endif %}
+                </div>
+                <hr class="my-4">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-{% if action == 'Créer' %}plus-circle{% else %}check-circle{% endif %} me-2"></i>
+                        {% if action == 'Créer' %}Créer le ticket{% else %}Enregistrer les modifications{% endif %}
+                    </button>
+                    {% if action == 'Modifier' %}
+                    <a href="{% url 'ticket_detail' ticket.pk %}" class="btn btn-outline-secondary btn-lg">
+                        Annuler
+                    </a>
+                    {% else %}
+                    <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary btn-lg">
+                        Annuler
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-card select, .form-card input, .form-card textarea {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    width: 100%;
+}
+.form-card select:focus, .form-card input:focus, .form-card textarea:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.15);
+    outline: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorieSelect = document.querySelector('select[name="categorie_ticket"]');
+    const machineField = document.getElementById('machine-field');
+    const machineSelect = document.querySelector('select[name="machine"]');
+    const machineRequired = document.getElementById('machine-required');
+    
+    function toggleMachineField() {
+        if (categorieSelect.value === 'industrielle') {
+            machineField.style.display = 'block';
+            machineSelect.required = true;
+            machineRequired.textContent = '*';
+        } else {
+            machineField.style.display = 'none';
+            machineSelect.required = false;
+            machineRequired.textContent = '';
+        }
+    }
+    
+    categorieSelect.addEventListener('change', toggleMachineField);
+    toggleMachineField();
+});
+</script>
+{% endblock %}

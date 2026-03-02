@@ -1,0 +1,190 @@
+{% extends 'tickets/base.html' %}
+
+{% block title %}Dashboard Demandes d'Intervention{% endblock %}
+
+{% block page_title %}Dashboard Demandes d'Intervention{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Vue d'ensemble des demandes</h4>
+            <a href="{% url 'demande_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nouvelle demande
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-primary">{{ total }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-clipboard-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-secondary">{{ en_attente }}</div>
+                    <div class="stat-label">En attente</div>
+                </div>
+                <div class="stat-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="bi bi-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-info">{{ validees }}</div>
+                    <div class="stat-label">Validées</div>
+                </div>
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-warning">{{ en_cours }}</div>
+                    <div class="stat-label">En cours</div>
+                </div>
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-success">{{ terminees }}</div>
+                    <div class="stat-label">Terminées</div>
+                </div>
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check-square"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Demandes récentes -->
+    <div class="col-lg-8 mb-4">
+        <div class="table-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2"></i>Demandes récentes</span>
+                <a href="{% url 'demande_list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>N° Demande</th>
+                            <th>Machine</th>
+                            <th>Service</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for demande in demandes_recentes %}
+                        <tr>
+                            <td class="ticket-num">{{ demande.numero_demande }}</td>
+                            <td>{{ demande.machine.nom }}</td>
+                            <td>{{ demande.service_demandeur }}</td>
+                            <td>
+                                <span class="badge bg-{{ demande.get_statut_class }}">
+                                    {{ demande.get_statut_display }}
+                                </span>
+                            </td>
+                            <td>{{ demande.date_creation|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'demande_detail' demande.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Aucune demande récente</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par service -->
+    <div class="col-lg-4 mb-4">
+        <div class="table-card">
+            <div class="card-header">
+                <span><i class="bi bi-building me-2"></i>Top Services</span>
+            </div>
+            <div class="p-3">
+                {% for stat in stats_services %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="fw-medium">{{ stat.service_demandeur }}</div>
+                        <small class="text-muted">{{ stat.count }} demande{{ stat.count|pluralize }}</small>
+                    </div>
+                    <div class="progress" style="width: 100px; height: 6px;">
+                        {% if total > 0 and stat.count > 0 %}
+                        <div class="progress-bar bg-primary" style="width: 50%"></div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center">Aucune donnée disponible</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques par nature d'anomalie -->
+<div class="row">
+    <div class="col-12">
+        <div class="table-card">
+            <div class="card-header">
+                <span><i class="bi bi-exclamation-triangle me-2"></i>Répartition par nature d'anomalie</span>
+            </div>
+            <div class="p-3">
+                <div class="row">
+                    {% for stat in stats_natures %}
+                    <div class="col-md-2 col-sm-4 col-6 mb-3">
+                        <div class="text-center">
+                            <div class="h4 mb-1">{{ stat.count }}</div>
+                            <div class="small text-muted">{{ stat.nature_anomalie|title }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-muted text-center">Aucune donnée disponible</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

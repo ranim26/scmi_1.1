@@ -1,0 +1,197 @@
+{% extends 'tickets/base.html' %}
+{% block title %}Tableau de bord - Ticketing Industriel{% endblock %}
+{% block page_title %}<i class="bi bi-speedometer2 me-2"></i>Tableau de bord{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon bg-primary bg-opacity-10">🎫</div>
+                <span class="badge bg-primary">Total</span>
+            </div>
+            <div class="stat-number text-primary">{{ total }}</div>
+            <div class="stat-label">Tous les tickets</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon bg-danger bg-opacity-10">🚨</div>
+                <span class="badge bg-danger">Ouverts</span>
+            </div>
+            <div class="stat-number text-danger">{{ ouverts }}</div>
+            <div class="stat-label">Tickets ouverts</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon bg-warning bg-opacity-10">🔧</div>
+                <span class="badge bg-warning text-dark">En cours</span>
+            </div>
+            <div class="stat-number text-warning">{{ en_cours }}</div>
+            <div class="stat-label">En cours de traitement</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon bg-danger bg-opacity-10">⚠️</div>
+                <span class="badge bg-danger">Critique</span>
+            </div>
+            <div class="stat-number text-danger">{{ critiques }}</div>
+            <div class="stat-label">Pannes critiques actives</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Tickets récents -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2"></i>Tickets récents</span>
+                <a href="{% url 'ticket_list' %}" class="btn btn-sm btn-outline-primary">Voir tous</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Titre</th>
+                            <th>Machine</th>
+                            <th>Priorité</th>
+                            <th>Statut</th>
+                            <th>Depuis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets_recents %}
+                        <tr style="cursor:pointer" onclick="window.location='{% url 'ticket_detail' ticket.pk %}'">
+                            <td><span class="ticket-num">#{{ ticket.pk }}</span></td>
+                            <td>
+                                <div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    {{ ticket.titre }}
+                                </div>
+                                <small class="text-muted">{{ ticket.get_type_panne_display }}</small>
+                            </td>
+                            <td><small>{{ ticket.machine.nom }}</small></td>
+                            <td>
+                                <span class="badge badge-priorite-{{ ticket.priorite }}">
+                                    {{ ticket.get_priorite_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ ticket.get_statut_class }}">
+                                    {{ ticket.get_statut_display }}
+                                </span>
+                            </td>
+                            <td><small class="text-muted">{{ ticket.duree_depuis_creation }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucun ticket</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel droite -->
+    <div class="col-lg-4">
+        <!-- Mes tickets -->
+        <div class="table-card mb-4">
+            <div class="card-header">
+                <i class="bi bi-person-check me-2"></i>Mes tickets assignés
+            </div>
+            <div class="card-body p-0">
+                {% for ticket in mes_tickets %}
+                <a href="{% url 'ticket_detail' ticket.pk %}" class="d-flex align-items-center p-3 border-bottom text-decoration-none text-dark" 
+                   style="gap: 10px;">
+                    <span class="badge badge-priorite-{{ ticket.priorite }} rounded-circle" 
+                          style="width:10px;height:10px;padding:5px;"></span>
+                    <div class="flex-grow-1">
+                        <div style="font-size:0.85rem; font-weight:500;">{{ ticket.titre|truncatechars:40 }}</div>
+                        <small class="text-muted">{{ ticket.machine.nom }}</small>
+                    </div>
+                    <span class="badge bg-{{ ticket.get_statut_class }} badge-sm" style="font-size:0.7rem;">
+                        {{ ticket.get_statut_display }}
+                    </span>
+                </a>
+                {% empty %}
+                <p class="text-muted text-center py-3 mb-0 small">Aucun ticket assigné</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pannes par priorité -->
+        <div class="stat-card">
+            <h6 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Tickets actifs par priorité</h6>
+            {% with total_actifs=stats_priorite.critique|add:stats_priorite.haute|add:stats_priorite.moyenne|add:stats_priorite.basse %}
+            <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1">
+                    <small>🔴 Critique</small><small>{{ stats_priorite.critique }}</small>
+                </div>
+                <div class="progress" style="height:8px;">
+                    {% if total_actifs > 0 %}
+                    <div class="progress-bar bg-danger" style="width:{% widthratio stats_priorite.critique total_actifs 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1">
+                    <small>🟠 Haute</small><small>{{ stats_priorite.haute }}</small>
+                </div>
+                <div class="progress" style="height:8px;">
+                    {% if total_actifs > 0 %}
+                    <div class="progress-bar bg-warning" style="width:{% widthratio stats_priorite.haute total_actifs 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1">
+                    <small>🟡 Moyenne</small><small>{{ stats_priorite.moyenne }}</small>
+                </div>
+                <div class="progress" style="height:8px;">
+                    {% if total_actifs > 0 %}
+                    <div class="progress-bar bg-info" style="width:{% widthratio stats_priorite.moyenne total_actifs 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mb-0">
+                <div class="d-flex justify-content-between mb-1">
+                    <small>🟢 Basse</small><small>{{ stats_priorite.basse }}</small>
+                </div>
+                <div class="progress" style="height:8px;">
+                    {% if total_actifs > 0 %}
+                    <div class="progress-bar bg-success" style="width:{% widthratio stats_priorite.basse total_actifs 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+
+        <!-- Top machines en panne -->
+        {% if stats_machines %}
+        <div class="stat-card mt-4">
+            <h6 class="mb-3"><i class="bi bi-cpu me-2"></i>Machines avec tickets actifs</h6>
+            {% for machine in stats_machines %}
+            {% if machine.nb_ouverts > 0 %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div>
+                    <div style="font-size:0.85rem; font-weight:500;">{{ machine.nom }}</div>
+                    <small class="text-muted">{{ machine.localisation }}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-danger">{{ machine.nb_ouverts }} actif{{ machine.nb_ouverts|pluralize }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
