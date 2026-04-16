@@ -1,0 +1,11 @@
+<div>
+    <h6>{{ machine.nom }}</h6>
+    <ul class="list-group">
+        <li class="list-group-item"><strong>Référence :</strong> {{ machine.reference }}</li>
+        <li class="list-group-item"><strong>Localisation :</strong> {{ machine.localisation }}</li>
+        <li class="list-group-item"><strong>État :</strong> {% if machine.actif %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</li>
+        <li class="list-group-item"><strong>Opérateur associé :</strong> {% if machine.operator %}{{ machine.operator.user.get_full_name|default:machine.operator.user.username }}{% else %}<span class="text-muted">Aucun</span>{% endif %}</li>
+        <li class="list-group-item"><strong>Description :</strong> {{ machine.description }}</li>
+        <li class="list-group-item"><strong>Date installation :</strong> {{ machine.date_installation }}</li>
+    </ul>
+</div>

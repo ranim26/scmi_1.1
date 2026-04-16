@@ -1,4 +1,7 @@
-Django==4.2.9
-Pillow>=10.3.0
-django-crispy-forms==2.1
+asgiref==3.11.1
 crispy-bootstrap5==0.7
+Django==4.2.30
+django-crispy-forms==2.1
+pillow==12.2.0
+sqlparse==0.5.5
+tzdata==2026.1

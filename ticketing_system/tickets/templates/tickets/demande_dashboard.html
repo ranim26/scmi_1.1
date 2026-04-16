@@ -1,16 +1,16 @@
 {% extends 'tickets/base.html' %}
 
-{% block title %}Dashboard Demandes d'Intervention{% endblock %}
+{% block title %}Dashboard Tickets de support{% endblock %}
 
-{% block page_title %}Dashboard Demandes d'Intervention{% endblock %}
+{% block page_title %}Dashboard Tickets de support{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Vue d'ensemble des demandes</h4>
+            <h4 class="mb-0">Vue d'ensemble des tickets</h4>
             <a href="{% url 'demande_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Nouvelle demande
+                <i class="bi bi-plus-circle"></i> Nouveau ticket
             </a>
         </div>
     </div>
@@ -83,23 +83,35 @@
             </div>
         </div>
     </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number text-danger">{{ annulees }}</div>
+                    <div class="stat-label">Annulés</div>
+                </div>
+                <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row">
-    <!-- Demandes récentes -->
+    <!-- Tickets récents -->
     <div class="col-lg-8 mb-4">
         <div class="table-card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-clock-history me-2"></i>Demandes récentes</span>
+                <span><i class="bi bi-clock-history me-2"></i>Tickets récents</span>
                 <a href="{% url 'demande_list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>N° Demande</th>
+                            <th>N° Ticket</th>
                             <th>Machine</th>
-                            <th>Service</th>
                             <th>Statut</th>
                             <th>Date</th>
                             <th>Actions</th>
@@ -108,9 +120,8 @@
                     <tbody>
                         {% for demande in demandes_recentes %}
                         <tr>
-                            <td class="ticket-num">{{ demande.numero_demande }}</td>
+                            <td class="ticket-num">{{ demande.numero_ticket }}</td>
                             <td>{{ demande.machine.nom }}</td>
-                            <td>{{ demande.service_demandeur }}</td>
                             <td>
                                 <span class="badge bg-{{ demande.get_statut_class }}">
                                     {{ demande.get_statut_display }}
@@ -125,7 +136,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted">Aucune demande récente</td>
+                            <td colspan="6" class="text-center text-muted">Aucun ticket récent</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -134,9 +145,10 @@
         </div>
     </div>
 
-    <!-- Statistiques par service -->
+
+    <!-- Statistiques par service + nature d'anomalie -->
     <div class="col-lg-4 mb-4">
-        <div class="table-card">
+        <div class="table-card mb-4">
             <div class="card-header">
                 <span><i class="bi bi-building me-2"></i>Top Services</span>
             </div>
@@ -145,7 +157,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <div class="fw-medium">{{ stat.service_demandeur }}</div>
-                        <small class="text-muted">{{ stat.count }} demande{{ stat.count|pluralize }}</small>
+                        <small class="text-muted">{{ stat.count }} ticket{{ stat.count|pluralize }}</small>
                     </div>
                     <div class="progress" style="width: 100px; height: 6px;">
                         {% if total > 0 and stat.count > 0 %}
@@ -158,12 +170,6 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Statistiques par nature d'anomalie -->
-<div class="row">
-    <div class="col-12">
         <div class="table-card">
             <div class="card-header">
                 <span><i class="bi bi-exclamation-triangle me-2"></i>Répartition par nature d'anomalie</span>
@@ -171,10 +177,10 @@
             <div class="p-3">
                 <div class="row">
                     {% for stat in stats_natures %}
-                    <div class="col-md-2 col-sm-4 col-6 mb-3">
-                        <div class="text-center">
-                            <div class="h4 mb-1">{{ stat.count }}</div>
-                            <div class="small text-muted">{{ stat.nature_anomalie|title }}</div>
+                    <div class="col-md-12 col-sm-6 col-12 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-medium">{{ stat.nature_anomalie|title }}</div>
+                            <span class="badge bg-info text-dark">{{ stat.count }}</span>
                         </div>
                     </div>
                     {% empty %}

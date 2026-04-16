@@ -4,15 +4,15 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('tickets/', views.ticket_list, name='ticket_list'),
-    path('tickets/nouveau/', views.ticket_create, name='ticket_create'),
-    path('tickets/<int:pk>/', views.ticket_detail, name='ticket_detail'),
-    path('tickets/<int:pk>/modifier/', views.ticket_edit, name='ticket_edit'),
-    path('tickets/<int:pk>/statut/<str:statut>/', views.ticket_change_statut, name='ticket_change_statut'),
+    # Machines
+    path('machines/<int:pk>/details/', views.machine_details, name='machine_details'),
     path('machines/', views.machine_list, name='machine_list'),
     path('machines/nouvelle/', views.machine_create, name='machine_create'),
     path('machines/<int:pk>/modifier/', views.machine_edit, name='machine_edit'),
     path('machines/<int:pk>/supprimer/', views.machine_delete, name='machine_delete'),
+    path('machines/<int:pk>/activer/', views.activate_machine, name='machine_activate'),
+    path('machines/<int:pk>/desactiver/', views.deactivate_machine, name='machine_deactivate'),
+    path('profil/machines/', views.choisir_machines, name='choisir_machines'),
     # Gestion des utilisateurs (Admin uniquement)
     path('utilisateurs/', views.user_list, name='user_list'),
     path('utilisateurs/nouveau/', views.user_create, name='user_create'),
@@ -27,10 +27,11 @@ urlpatterns = [
     path('demandes/<int:pk>/statut/<str:statut>/', views.demande_change_statut, name='demande_change_statut'),
     # Interventions techniques
     path('interventions/', views.intervention_list, name='intervention_list'),
-    path('interventions/dashboard/', views.intervention_dashboard, name='intervention_dashboard'),
     path('interventions/viee/', views.viee_dashboard, name='viee_dashboard'),
     path('interventions/nouvelle/', views.intervention_create, name='intervention_create'),
     path('interventions/<int:pk>/', views.intervention_detail, name='intervention_detail'),
     path('interventions/<int:pk>/modifier/', views.intervention_edit, name='intervention_edit'),
-    path('interventions/from-demande/<int:demande_pk>/', views.intervention_create_from_demande, name='intervention_create_from_demande'),
+    path('interventions/from-ticket/<int:ticket_pk>/', views.intervention_create_from_ticket, name='intervention_create_from_ticket'),
+    # AJAX endpoint for operator filtering by department
+    path('ajax/get-operators/', views.get_operators_by_department, name='get_operators_by_department'),
 ]

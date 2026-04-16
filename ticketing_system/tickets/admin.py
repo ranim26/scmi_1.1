@@ -1,6 +1,77 @@
 from django.contrib import admin
-from .models import Machine, Ticket, Commentaire
-from .models import Department, OperatorProfile, DemandeIntervention, InterventionTechnique
+from .models_smtp import SMTPSettings
+
+# Interface d'administration pour SMTPSettings
+
+from django.urls import path
+from django import forms
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core.mail import EmailMessage, get_connection
+
+class SMTPTestForm(forms.Form):
+    email = forms.EmailField(label="Adresse email de test")
+
+@admin.register(SMTPSettings)
+class SMTPSettingsAdmin(admin.ModelAdmin):
+    list_display = ("name", "host", "port", "username", "from_email", "use_tls", "use_ssl", "active")
+    list_filter = ("active", "use_tls", "use_ssl")
+    search_fields = ("name", "host", "username", "from_email")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:pk>/test/', self.admin_site.admin_view(self.test_smtp), name='tickets_smtpsettings_test'),
+        ]
+        return custom_urls + urls
+
+    def test_smtp(self, request, pk):
+        smtp = self.get_object(request, pk)
+        if not smtp:
+            self.message_user(request, "Profil SMTP introuvable.", level=messages.ERROR)
+            return redirect('..')
+        if request.method == 'POST':
+            form = SMTPTestForm(request.POST)
+            if form.is_valid():
+                to_email = form.cleaned_data['email']
+                try:
+                    connection = get_connection(
+                        host=smtp.host,
+                        port=smtp.port,
+                        username=smtp.username,
+                        password=smtp.password,
+                        use_tls=smtp.use_tls,
+                        use_ssl=smtp.use_ssl,
+                    )
+                    email = EmailMessage(
+                        subject="Test SMTP depuis Django",
+                        body="Ceci est un email de test envoyé depuis l'interface d'administration.",
+                        from_email=smtp.from_email,
+                        to=[to_email],
+                        connection=connection
+                    )
+                    email.send(fail_silently=False)
+                    self.message_user(request, f"Email de test envoyé à {to_email} !", level=messages.SUCCESS)
+                except Exception as e:
+                    self.message_user(request, f"Erreur d'envoi : {e}", level=messages.ERROR)
+                return redirect(f'../../')
+        else:
+            form = SMTPTestForm()
+        context = dict(
+            self.admin_site.each_context(request),
+            title=f"Tester l'envoi SMTP ({smtp.name})",
+            smtp=smtp,
+            form=form,
+        )
+        return render(request, "admin/tickets/test_smtp.html", context)
+from django.contrib import admin
+from .models import Machine, Department, OperatorProfile, TicketSupport, InterventionTechnique
+from .models import Machine, TicketSupport, InterventionTechnique, OperatorProfile, Department, TicketHistory
+@admin.register(TicketHistory)
+class TicketHistoryAdmin(admin.ModelAdmin):
+    list_display = ("ticket", "user", "action", "date")
+    search_fields = ("ticket__numero_ticket", "user__username", "action", "details")
+    list_filter = ("action", "date")
 
 
 @admin.register(Machine)
@@ -8,20 +79,6 @@ class MachineAdmin(admin.ModelAdmin):
     list_display = ['nom', 'reference', 'localisation', 'actif', 'date_installation']
     list_filter = ['actif']
     search_fields = ['nom', 'reference', 'localisation']
-
-
-@admin.register(Ticket)
-class TicketAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'titre', 'machine', 'priorite', 'statut', 'cree_par', 'assigne_a', 'date_creation']
-    list_filter = ['statut', 'priorite', 'type_panne', 'machine']
-    search_fields = ['titre', 'description', 'machine__nom']
-    readonly_fields = ['date_creation', 'date_modification']
-
-
-@admin.register(Commentaire)
-class CommentaireAdmin(admin.ModelAdmin):
-    list_display = ['ticket', 'auteur', 'date_creation']
-    readonly_fields = ['date_creation']
 
 
 @admin.register(Department)
@@ -37,34 +94,34 @@ class OperatorProfileAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'user__email']
 
 
-@admin.register(DemandeIntervention)
-class DemandeInterventionAdmin(admin.ModelAdmin):
+@admin.register(TicketSupport)
+class TicketSupportAdmin(admin.ModelAdmin):
     list_display = [
-        'numero_demande', 'service_demandeur', 'machine', 'demandeur', 
-        'date_demande', 'nature_anomalie', 'statut', 'type_intervention'
+        'numero_ticket', 'service_support', 'machine', 'demandeur', 
+        'date_ticket', 'nature_probleme', 'statut', 'type_support'
     ]
     list_filter = [
-        'statut', 'nature_anomalie', 'type_intervention', 
-        'service_demandeur', 'date_demande'
+        'statut', 'nature_probleme', 'type_support', 
+        'service_support', 'date_ticket'
     ]
     search_fields = [
-        'numero_demande', 'demandeur', 'service_demandeur', 
-        'machine__nom', 'description_anomalie'
+        'numero_ticket', 'demandeur', 'service_support', 
+        'machine__nom', 'description_probleme'
     ]
     readonly_fields = ['date_creation', 'date_modification']
     
     fieldsets = (
         ('Informations générales', {
-            'fields': ('numero_demande', 'service_demandeur', 'demandeur', 'visa_demandeur', 'statut')
+            'fields': ('numero_ticket', 'service_support', 'demandeur', 'visa_demandeur', 'statut')
         }),
         ('Machine concernée', {
             'fields': ('machine', 'code_machine')
         }),
         ('Dates', {
-            'fields': ('date_demande', 'heure_demande', 'delai_souhaite')
+            'fields': ('date_ticket', 'heure_ticket', 'delai_souhaite')
         }),
-        ('Détails de l\'anomalie', {
-            'fields': ('type_intervention', 'nature_anomalie', 'description_anomalie')
+        ('Détails du problème', {
+            'fields': ('type_support', 'nature_probleme', 'description_probleme')
         }),
         ('Métadonnées', {
             'fields': ('date_creation', 'date_modification'),
@@ -82,21 +139,21 @@ class DemandeInterventionAdmin(admin.ModelAdmin):
 @admin.register(InterventionTechnique)
 class InterventionTechniqueAdmin(admin.ModelAdmin):
     list_display = [
-        'numero_demande', 'type_technicien', 'get_technicien_prestataire', 
+        'numero_ticket', 'type_technicien', 'get_technicien_prestataire', 
         'date_prise_en_compte', 'date_fin_intervention', 'duree_intervention'
     ]
     list_filter = [
         'type_technicien', 'date_prise_en_compte', 'date_fin_intervention'
     ]
     search_fields = [
-        'numero_demande__numero_demande', 'nom_technicien', 'nom_prestataire',
-        'description_intervention', 'numero_demande__machine__nom'
+        'numero_ticket__numero_ticket', 'nom_technicien', 'nom_prestataire',
+        'description_intervention', 'numero_ticket__machine__nom'
     ]
     readonly_fields = ['date_creation', 'date_modification']
     
     fieldsets = (
-        ('Lien vers la demande', {
-            'fields': ('numero_demande',)
+        ('Lien vers le ticket', {
+            'fields': ('numero_ticket',)
         }),
         ('Informations technicien', {
             'fields': ('type_technicien', 'nom_technicien', 'nom_prestataire', 'nom_accompagnant')

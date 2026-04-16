@@ -1,4 +1,5 @@
 {% extends 'tickets/base.html' %}
+{% load permissions %}
 {% block title %}Vie des équipements - Ticketing Industriel{% endblock %}
 {% block page_title %}<i class="bi bi-activity me-2"></i>Vie des équipements{% endblock %}
 
@@ -171,13 +172,13 @@
     <!-- Cartes des machines -->
     <div class="machine-grid">
         {% for machine in machines %}
-        <div class="machine-card">
+        <div class="machine-card" data-machine-id="{{ machine.pk }}">
             <div class="machine-header">
                 <div class="machine-name">{{ machine.nom }}</div>
-                {% if machine.nb_critiques > 0 %}
-                <div class="machine-status status-danger">{{ machine.nb_critiques }} critique{{ machine.nb_critiques|pluralize }}</div>
-                {% elif machine.nb_ouverts > 0 %}
-                <div class="machine-status status-warning">{{ machine.nb_ouverts }} ouvert{{ machine.nb_ouverts|pluralize }}</div>
+                {% if machine.nb_demandes_critiques > 0 %}
+                <div class="machine-status status-danger">{{ machine.nb_demandes_critiques }} critique{{ machine.nb_demandes_critiques|pluralize }}</div>
+                {% elif machine.nb_demandes_ouvertes > 0 %}
+                <div class="machine-status status-warning">{{ machine.nb_demandes_ouvertes }} ouvert{{ machine.nb_demandes_ouvertes|pluralize }}</div>
                 {% else %}
                 <div class="machine-status status-good">Opérationnelle</div>
                 {% endif %}
@@ -185,33 +186,43 @@
             
             <div class="machine-stats">
                 <div class="stat-item">
-                    <div class="stat-number">{{ machine.nb_tickets }}</div>
+                    <div class="stat-number" data-field="nb_demandes">{{ machine.nb_demandes }}</div>
                     <div class="stat-label">Tickets total</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">{{ machine.nb_ouverts }}</div>
+                    <div class="stat-number" data-field="nb_demandes_ouvertes">{{ machine.nb_demandes_ouvertes }}</div>
                     <div class="stat-label">Tickets ouverts</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">{{ machine.nb_demandes }}</div>
-                    <div class="stat-label">Demandes total</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ machine.nb_demandes_ouvertes }}</div>
-                    <div class="stat-label">Demandes ouvertes</div>
+                    <div class="stat-number" data-field="taux_disponibilite">{{ machine.taux_disponibilite }}%</div>
+                    <div class="stat-label">Taux de disponibilité</div>
+                    <small style="font-size: 0.6rem; color: #999;">{{ machine.debug_info }}</small>
                 </div>
             </div>
             
             <div class="d-flex gap-2">
-                <a href="{% url 'ticket_list' %}?machine={{ machine.pk }}" class="btn btn-sm btn-outline-primary flex-grow-1">
-                    <i class="bi bi-ticket me-1"></i>Voir tickets
-                </a>
-                <a href="{% url 'demande_list' %}?machine={{ machine.pk }}" class="btn btn-sm btn-outline-info flex-grow-1">
-                    <i class="bi bi-clipboard-check me-1"></i>Voir demandes
-                </a>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#ticketsModal" data-machine-id="{{ machine.pk }}">
+                    <i class="bi bi-clipboard-check me-1"></i>Voir tickets
+                </button>
+                <div class="d-flex flex-column flex-grow-1">
+                    <!-- single modal triggered by all machines (inserted below) -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100" style="display:none;" aria-hidden="true"></button>
+                    <span class="mb-1 machine-status-label">
+                        {% if machine.actif %}
+                            {% if machine.nb_demandes_ouvertes > 0 %}
+                                <span class="badge bg-danger">En panne</span>
+                            {% else %}
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </span>
+                  
+                </div>
             </div>
         </div>
-        {% empty %}
+            {% empty %}
         <div class="col-12 text-center py-5 text-muted">
             <i class="bi bi-cpu" style="font-size:4rem;display:block;margin-bottom:15px;"></i>
             Aucune machine active trouvée.
@@ -219,276 +230,112 @@
         {% endfor %}
     </div>
 
-    <!-- Tickets récents -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Tickets récents</h5>
-            <a href="{% url 'ticket_list' %}" class="btn btn-sm btn-outline-primary">Voir tous</a>
-        </div>
-        <div class="table-responsive">
-            <table class="viee-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Machine</th>
-                        <th>Titre</th>
-                        <th>Priorité</th>
-                        <th>Statut</th>
-                        <th>Créé le</th>
-                        <th>Assigné à</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ticket in tickets_recents %}
-                    <tr>
-                        <td><span class="ticket-num">#{{ ticket.pk }}</span></td>
-                        <td>{{ ticket.machine.nom }}</td>
-                        <td>
-                            <div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                {{ ticket.titre }}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="priority-{{ ticket.priorite }}">
-                                {{ ticket.get_priorite_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge bg-{{ ticket.get_statut_class }}">
-                                {{ ticket.get_statut_display }}
-                            </span>
-                        </td>
-                        <td>{{ ticket.date_creation|date:"d/m/Y H:i" }}</td>
-                        <td>
-                            {% if ticket.assigne_a %}
-                                {{ ticket.assigne_a.get_full_name|default:ticket.assigne_a.username }}
-                            {% else %}
-                                Non assigné
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted py-4">Aucun ticket récent</td></tr>
+        {% if machines.has_other_pages %}
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Pagination">
+                <ul class="pagination">
+                    {% with request.GET.urlencode as qs %}
+                    <li class="page-item {% if not machines.has_previous %}disabled{% endif %}">
+                        <a class="page-link" href="?{% if qs %}{{ qs }}&{% endif %}page={{ machines.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% for num in machines.paginator.page_range %}
+                        <li class="page-item {% if num == machines.number %}active{% endif %}">
+                            <a class="page-link" href="?{% if qs %}{{ qs }}&{% endif %}page={{ num }}">{{ num }}</a>
+                        </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                    <li class="page-item {% if not machines.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="?{% if qs %}{{ qs }}&{% endif %}page={{ machines.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% endwith %}
+                </ul>
+            </nav>
         </div>
-    </div>
+        {% endif %}
 
-    <!-- Demandes récentes -->
-    <div class="card mt-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Demandes d'intervention récentes</h5>
-            <a href="{% url 'demande_list' %}" class="btn btn-sm btn-outline-primary">Voir toutes</a>
-        </div>
-        <div class="table-responsive">
-            <table class="viee-table">
-                <thead>
-                    <tr>
-                        <th>N° Demande</th>
-                        <th>Machine</th>
-                        <th>Nature anomalie</th>
-                        <th>Statut</th>
-                        <th>Créée le</th>
-                        <th>Demandeur</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for demande in demandes_recentes %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'demande_detail' demande.pk %}" class="fw-bold">
-                                {{ demande.numero_demande }}
-                            </a>
-                        </td>
-                        <td>{{ demande.machine.nom }}</td>
-                        <td>{{ demande.get_nature_anomalie_display }}</td>
-                        <td>
-                            <span class="badge bg-{{ demande.get_statut_class }}">
-                                {{ demande.get_statut_display }}
-                            </span>
-                        </td>
-                        <td>{{ demande.date_creation|date:"d/m/Y H:i" }}</td>
-                        <td>{{ demande.demandeur }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">Aucune demande récente</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Formulaire intervention local -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Ajouter une intervention locale</h5>
-        </div>
-        <div class="card-body">
-            <form id="formIntervention" class="viee-form-table">
-                <input type="date" id="date" required>
-                <select id="nature" required>
-                    <option value="">Nature</option>
-                    <option value="P">P - Préventive</option>
-                    <option value="C">C - Curative</option>
-                    <option value="CA">CA - Calibrage</option>
-                    <option value="E">E - Étalonnage</option>
-                    <option value="V">V - Vérification</option>
-                </select>
-                <input type="text" id="description" placeholder="Description" required>
-                <input type="text" id="enregistrement" placeholder="Enregistrement">
-                <input type="text" id="resultat" placeholder="Résultat">
-                <input type="text" id="technicien" placeholder="Technicien">
-                <input type="text" id="signature" placeholder="Signature">
-                <button type="submit" class="viee-add-btn">
-                    <i class="bi bi-plus-circle"></i> Ajouter
-                </button>
-            </form>
-
-            <!-- Tableau historique local -->
-            <div class="mt-4">
-                <h6><i class="bi bi-clock-history me-2"></i>Historique local des interventions</h6>
-                <div class="table-responsive">
-                    <table class="viee-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Nature</th>
-                                <th>Description</th>
-                                <th>Enregist.</th>
-                                <th>Résultat</th>
-                                <th>Technicien</th>
-                                <th>Signature</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
-                <div id="emptyState" class="text-center text-muted py-4" style="display: none;">
-                    <i class="bi bi-inbox" style="font-size: 48px;"></i>
-                    <p class="mt-3">Aucune intervention locale enregistrée</p>
+        <!-- Single modal used for all machines -->
+        <div class="modal fade" id="ticketsModal" tabindex="-1" aria-labelledby="ticketsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ticketsModalLabel">Tickets de support de la machine</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="ticketsModalBody">
+                        <div class="text-center text-muted py-4">Chargement...</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<script>
-const tableBody = document.getElementById("tableBody");
-const form = document.getElementById("formIntervention");
-const emptyState = document.getElementById("emptyState");
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ticketsModal = document.getElementById('ticketsModal');
+            if (ticketsModal) {
+                ticketsModal.addEventListener('show.bs.modal', function (event) {
+                    var button = event.relatedTarget;
+                    var machineId = button.getAttribute('data-machine-id');
+                    var modalBody = document.getElementById('ticketsModalBody');
+                    modalBody.innerHTML = '<div class="text-center text-muted py-4">Chargement...</div>';
+                    fetch('/demandes/?machine=' + machineId + '&ajax=1')
+                        .then(response => response.text())
+                        .then(html => { modalBody.innerHTML = html; })
+                        .catch(() => { modalBody.innerHTML = '<div class="text-danger">Erreur lors du chargement des tickets.</div>'; });
+                });
+            }
 
-// FORMULAIRE
-form.addEventListener("submit", function(e){
-    e.preventDefault();
-    const data = {
-        id: Date.now(),
-        date: date.value,
-        nature: nature.value,
-        description: description.value,
-        enregistrement: enregistrement.value,
-        resultat: resultat.value,
-        technicien: technicien.value,
-        signature: signature.value
-    };
-    addRow(data);
-    saveData(data);
-    form.reset();
-    date.focus();
-});
+            // Gestion centralisée des formulaires d'action machine (activation/désactivation)
+            document.addEventListener('submit', function(e) {
+                var form = e.target.closest && e.target.closest('.machine-action-form');
+                if (!form) return;
+                e.preventDefault();
+                var machineId = form.getAttribute('data-machine-id');
+                var action = form.getAttribute('data-action'); // 'activer' ou 'desactiver'
+                var endpoint = '/machines/' + machineId + '/' + (action === 'activer' ? 'activer' : 'desactiver') + '/';
+                var submitBtn = form.querySelector('button');
+                if (submitBtn) submitBtn.disabled = true;
 
-// AJOUTER LIGNE
-function addRow(data){
-    const row = document.createElement("tr");
-    row.innerHTML = `
-        <td>${formatDate(data.date)}</td>
-        <td><span class="badge badge-${getNatureClass(data.nature)}">${getNatureLabel(data.nature)}</span></td>
-        <td>${data.description}</td>
-        <td>${data.enregistrement || '-'}</td>
-        <td>${data.resultat || '-'}</td>
-        <td>${data.technicien || '-'}</td>
-        <td>${data.signature || '-'}</td>
-        <td>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteRow(${data.id})" title="Supprimer">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(row);
-    updateEmptyState();
-}
+                var headers = {'X-Requested-With': 'XMLHttpRequest'};
+                var csrfInput = form.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) headers['X-CSRFToken'] = csrfInput.value;
 
-// SUPPRESSION
-function deleteRow(id){
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette intervention ?')) {
-        const row = event.target.closest('tr');
-        row.remove();
-        
-        // Mettre à jour le localStorage
-        let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
-        list = list.filter(item => item.id !== id);
-        localStorage.setItem("interventions_viee", JSON.stringify(list));
-        
-        updateEmptyState();
-    }
-}
+                fetch(endpoint, {method: 'POST', headers: headers})
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (!data || !data.success) {
+                        alert(data && data.error ? data.error : 'Erreur serveur');
+                        if (submitBtn) submitBtn.disabled = false;
+                        return;
+                    }
 
-// SAUVEGARDE
-function saveData(data){
-    let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
-    list.push(data);
-    localStorage.setItem("interventions_viee", JSON.stringify(list));
-}
+                    // Mettre à jour le badge d'état et les compteurs dans la carte
+                    var card = document.querySelector('[data-machine-id="' + data.machine_pk + '"]');
+                    if (card) {
+                        var statusSpan = card.querySelector('span.mb-1');
+                        if (statusSpan) {
+                            if (data.etat === 'active' || data.etat === 'Active') {
+                                statusSpan.innerHTML = '<span class="badge bg-success">Active</span>';
+                            } else {
+                                statusSpan.innerHTML = '<span class="badge bg-secondary">Inactive</span>';
+                            }
+                        }
+                        var nb = card.querySelector('[data-field="nb_demandes"]');
+                        if (nb && (data.nb_demandes !== undefined)) nb.textContent = data.nb_demandes;
+                        // support both server key names and template data-field
+                        var nb2 = card.querySelector('[data-field="nb_demandes_ouvertes"]') || card.querySelector('[data-field="nb_ouverts"]');
+                        var openCount = (data.nb_demandes_ouvertes !== undefined) ? data.nb_demandes_ouvertes : data.nb_ouverts;
+                        if (nb2 && openCount !== undefined) nb2.textContent = openCount;
+                    }
 
-// CHARGEMENT
-function loadData(){
-    tableBody.innerHTML = "";
-    let list = JSON.parse(localStorage.getItem("interventions_viee")) || [];
-    list.sort((a, b) => new Date(b.date) - new Date(a.date)); // Tri par date décroissante
-    list.forEach(addRow);
-    updateEmptyState();
-}
+                    // Mettre à jour uniquement l'affichage du badge et des compteurs; on laisse les boutons visibles
+                    // (l'utilisateur peut appuyer plusieurs fois sur Activer/Désactiver)
 
-// ÉTAT VIDE
-function updateEmptyState() {
-    const hasData = tableBody.children.length > 0;
-    emptyState.style.display = hasData ? 'none' : 'block';
-}
+                }).catch(function() {
+                    alert('Erreur réseau lors de l\'opération.');
+                    if (submitBtn) submitBtn.disabled = false;
+                });
+            });
+        });
+        </script>
 
-// UTILITAIRES
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR');
-}
-
-function getNatureLabel(nature) {
-    const labels = {
-        'P': 'Préventive',
-        'C': 'Curative',
-        'CA': 'Calibrage',
-        'E': 'Étalonnage',
-        'V': 'Vérification'
-    };
-    return labels[nature] || nature;
-}
-
-function getNatureClass(nature) {
-    const classes = {
-        'P': 'success',
-        'C': 'danger',
-        'CA': 'info',
-        'E': 'warning',
-        'V': 'secondary'
-    };
-    return classes[nature] || 'secondary';
-}
-
-// Initialisation
-window.onload = function() {
-    loadData();
-    // Mettre la date du jour par défaut
-    document.getElementById('date').valueAsDate = new Date();
-};
-</script>
+    
 {% endblock %}

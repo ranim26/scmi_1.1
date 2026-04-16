@@ -3,12 +3,35 @@
 <div class="min-vh-100 d-flex align-items-center justify-content-center" 
      style="background: linear-gradient(135deg, #1a2332 0%, #0d1b2a 100%);">
     <div class="text-center" style="width: 400px;">
-        <div style="background: rgba(13,110,253,0.2); width: 80px; height: 80px; border-radius: 20px; 
-                    display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5rem;">
-            ⚙️
+        <div style="background: white; width: 80px; height: 80px; border-radius: 20px; 
+                    display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; 
+                    position: relative; border: 2px solid #e0e0e0;">
+            <style>
+                .login-logo::before {
+                    content: '';
+                    position: absolute;
+                    width: 24px; height: 24px;
+                    border: 3px solid #000;
+                    border-radius: 50%;
+                    left: 18px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                }
+                .login-logo::after {
+                    content: '';
+                    position: absolute;
+                    width: 24px; height: 24px;
+                    background: #00a896;
+                    border-radius: 50%;
+                    right: 18px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                }
+            </style>
+            <div class="login-logo" style="width: 100%; height: 100%; position: relative;"></div>
         </div>
-        <h3 class="text-white mb-1">Supervision Industrielle</h3>
-        <p class="text-white-50 mb-4">Système de Ticketing - Pannes Machines</p>
+        <h3 class="text-white mb-1">inission</h3>
+        <p class="text-white-50 mb-4">Supervision Industrielle - Pannes Machines</p>
         
         <div class="card border-0" style="border-radius: 16px;">
             <div class="card-body p-4">
@@ -32,9 +55,7 @@
                 </form>
             </div>
         </div>
-        <p class="text-white-50 mt-3 small">
-            <i class="bi bi-info-circle me-1"></i>Admin: admin / admin123
-        </p>
+        
     </div>
 </div>
 {% endblock %}

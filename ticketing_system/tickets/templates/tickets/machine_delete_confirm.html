@@ -17,15 +17,15 @@
                 <div class="alert alert-danger">
                     <i class="bi bi-shield-exclamation me-2"></i>
                     <strong>Mode administrateur :</strong> Vous pouvez supprimer cette machine même si elle contient des données associées.
-                    <br><strong>Attention :</strong> Cette action supprimera également tous les tickets, demandes et interventions associés.
+                    <br><strong>Attention :</strong> Cette action supprimera également toutes les demandes et interventions associés.
                 </div>
                 
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="card bg-light">
                             <div class="card-body text-center">
-                                <h4 class="text-primary">{{ ticket_count }}</h4>
-                                <small class="text-muted">Ticket(s) associé(s)</small>
+                                <h4 class="text-primary">{{ demande_count }}</h4>
+                                <small class="text-muted">Demande(s) associée(s)</small>
                             </div>
                         </div>
                     </div>
@@ -52,7 +52,6 @@
                     <strong>Impact de la suppression :</strong>
                     <ul class="mb-0 mt-2">
                         <li>La machine <strong>{{ machine.nom }}</strong> sera définitivement supprimée</li>
-                        <li><strong>{{ ticket_count }}</strong> ticket(s) associé(s) seront supprimés</li>
                         <li><strong>{{ demande_count }}</strong> demande(s) d'intervention seront supprimées</li>
                         <li><strong>{{ intervention_count }}</strong> intervention(s) technique(s) seront supprimées</li>
                     </ul>
@@ -68,8 +67,8 @@
                     <div class="col-md-6">
                         <div class="card bg-light">
                             <div class="card-body text-center">
-                                <h4 class="text-primary">{{ ticket_count }}</h4>
-                                <small class="text-muted">Ticket(s) associé(s)</small>
+                                <h4 class="text-primary">{{ demande_count }}</h4>
+                                <small class="text-muted">Demande(s) associée(s)</small>
                             </div>
                         </div>
                     </div>
@@ -85,7 +84,7 @@
                 
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i>
-                    Pour supprimer cette machine en mode normal, vous devez d'abord supprimer ou réassigner tous les tickets et demandes d'intervention associés.
+                    Pour supprimer cette machine en mode normal, vous devez d'abord supprimer ou réassigner toutes les demandes d'intervention associées.
                 </div>
                 
                 <div class="d-flex justify-content-end">

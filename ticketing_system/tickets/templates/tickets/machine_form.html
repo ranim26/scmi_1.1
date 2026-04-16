@@ -36,6 +36,14 @@
                         <label class="form-label fw-bold">Description</label>
                         {{ form.description }}
                     </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Département associé *</label>
+                            {{ form.department }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Opérateur associé *</label>
+                            {{ form.operator }}
+                        </div>
                 </div>
                 <hr class="my-4">
                 <div class="d-flex gap-2">
@@ -54,4 +62,28 @@
     border-radius: 8px; border: 1px solid #dee2e6; padding: 8px 12px; width: 100%;
 }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentField = document.getElementById('id_department');
+    const operatorField = document.getElementById('id_operator');
+    if (departmentField && operatorField) {
+        departmentField.addEventListener('change', function() {
+            const deptId = this.value;
+            operatorField.innerHTML = '<option value="">---------</option>';
+            if (deptId) {
+                fetch(`/ajax/get-operators/?department_id=${deptId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.operators.forEach(op => {
+                            const opt = document.createElement('option');
+                            opt.value = op.id;
+                            opt.textContent = op.name;
+                            operatorField.appendChild(opt);
+                        });
+                    });
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

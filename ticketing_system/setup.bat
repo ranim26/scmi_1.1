@@ -16,8 +16,8 @@ if errorlevel 1 (
 
 
 echo [1/4] Creation de l'environnement virtuel...
-python -m venv venv
-call venv\Scripts\activate.bat
+py -3.12 -m venv venv312
+call venv312\Scripts\activate
 
 echo [2/4] Installation des dependances...
 pip install -r requirements.txt
@@ -38,3 +38,6 @@ echo  Installation terminee avec succes!
 echo  Lancez run.bat pour demarrer
 echo ========================================
 pause
+
+:: Fix admin roles to ensure admin user always has correct privileges
+python manage.py shell -c "from tickets.management.commands import fix_admin_roles; fix_admin_roles.run()"

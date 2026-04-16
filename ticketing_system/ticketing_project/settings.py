@@ -23,6 +23,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'tickets.middleware.SlowRequestMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,3 +86,41 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Configuration CORS pour le preview browser
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:51707",
+    "http://localhost:51707",
+]
+
+# Désactiver CSRF pour les requises depuis le preview browser en développement
+if DEBUG:
+    CORS_ALLOW_CREDENTIALS = True
+    CSRF_TRUSTED_ORIGINS = [
+        "http://127.0.0.1:51707",
+        "http://localhost:51707",
+    ]
+
+# Logging pour requêtes lentes
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'}
+    },
+    'handlers': {
+        'slow_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': str(BASE_DIR / 'logs' / 'slow_requests.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'slowrequests': {
+            'handlers': ['slow_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

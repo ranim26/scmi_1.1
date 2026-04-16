@@ -1,4 +1,7 @@
+# Import du modèle SMTPSettings pour l'inclure dans l'app
+from .models_smtp import SMTPSettings
 from django.db import models
+from .models_ticket_file import TicketSupportFile
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models.signals import post_save
@@ -13,6 +16,8 @@ class Machine(models.Model):
     description = models.TextField(blank=True, verbose_name="Description")
     actif = models.BooleanField(default=True, verbose_name="Active")
     date_installation = models.DateField(null=True, blank=True, verbose_name="Date d'installation")
+    department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Département associé")
+    operator = models.ForeignKey('OperatorProfile', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Opérateur assigné")
 
     class Meta:
         verbose_name = "Machine"
@@ -21,94 +26,6 @@ class Machine(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.reference})"
-
-
-class Ticket(models.Model):
-    PRIORITE_CHOICES = [
-        ('critique', '🔴 Critique'),
-        ('haute', '🟠 Haute'),
-        ('moyenne', '🟡 Moyenne'),
-        ('basse', '🟢 Basse'),
-    ]
-
-    STATUT_CHOICES = [
-        ('ouvert', 'Ouvert'),
-        ('en_cours', 'En cours'),
-        ('en_attente', 'En attente pièces'),
-        ('resolu', 'Résolu'),
-        ('ferme', 'Fermé'),
-    ]
-
-    CATEGORIE_TICKET_CHOICES = [
-        ('industrielle', '🏭 Panne industrielle'),
-        ('bureautique', '🖥️ Panne bureautique'),
-    ]
-
-    TYPE_PANNE_CHOICES = [
-        ('informatique', 'Informatique'),
-        ('maintenance', 'Maintenance'),
-        ('engineer', 'Ingénierie'),
-    ]
-
-    # Informations de base
-    titre = models.CharField(max_length=300, verbose_name="Titre du ticket")
-    description = models.TextField(verbose_name="Description de la panne")
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE, null=True, blank=True, related_name='tickets', verbose_name="Machine")
-    categorie_ticket = models.CharField(max_length=15, choices=CATEGORIE_TICKET_CHOICES, default='industrielle', verbose_name="Catégorie de ticket")
-    type_panne = models.CharField(max_length=20, choices=TYPE_PANNE_CHOICES, verbose_name="Type de panne")
-    priorite = models.CharField(max_length=10, choices=PRIORITE_CHOICES, default='moyenne', verbose_name="Priorité")
-    statut = models.CharField(max_length=15, choices=STATUT_CHOICES, default='ouvert', verbose_name="Statut")
-
-    # Personnes
-    cree_par = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tickets_crees', verbose_name="Créé par")
-    assigne_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_assignes', verbose_name="Assigné à")
-
-    # Dates
-    date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
-    date_modification = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
-    date_resolution = models.DateTimeField(null=True, blank=True, verbose_name="Date de résolution")
-
-    # Informations techniques
-    solution = models.TextField(blank=True, verbose_name="Solution appliquée")
-    pieces_remplacees = models.TextField(blank=True, verbose_name="Pièces remplacées")
-    temps_intervention = models.PositiveIntegerField(null=True, blank=True, verbose_name="Temps d'intervention (minutes)")
-
-    class Meta:
-        verbose_name = "Ticket"
-        verbose_name_plural = "Tickets"
-        ordering = ['-date_creation']
-
-    def __str__(self):
-        return f"#{self.pk} - {self.titre}"
-
-    def get_priorite_class(self):
-        classes = {
-            'critique': 'danger',
-            'haute': 'warning',
-            'moyenne': 'info',
-            'basse': 'success',
-        }
-        return classes.get(self.priorite, 'secondary')
-
-    def get_statut_class(self):
-        classes = {
-            'ouvert': 'danger',
-            'en_cours': 'warning',
-            'en_attente': 'info',
-            'resolu': 'success',
-            'ferme': 'secondary',
-        }
-        return classes.get(self.statut, 'secondary')
-
-    def duree_depuis_creation(self):
-        delta = timezone.now() - self.date_creation
-        heures = delta.seconds // 3600 + delta.days * 24
-        if delta.days > 0:
-            return f"{delta.days}j {(delta.seconds // 3600)}h"
-        elif heures > 0:
-            return f"{heures}h {(delta.seconds % 3600) // 60}min"
-        else:
-            return f"{delta.seconds // 60}min"
 
 
 class Department(models.Model):
@@ -134,6 +51,7 @@ class Department(models.Model):
 
 class OperatorProfile(models.Model):
     ROLE_CHOICES = [
+        ('admin', 'Admin'),
         ('operateur', 'Opérateur'),
         ('superviseur', 'Superviseur'),
     ]
@@ -141,6 +59,7 @@ class OperatorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='operatorprofile')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='operateur')
+    machines = models.ManyToManyField('Machine', blank=True, verbose_name="Machines de l'opérateur")
 
     class Meta:
         verbose_name = 'Profil opérateur'
@@ -154,23 +73,46 @@ class OperatorProfile(models.Model):
 @receiver(post_save, sender=User)
 def ensure_operator_profile(sender, instance, created, **kwargs):
     if created:
-        OperatorProfile.objects.get_or_create(user=instance)
+        role = 'admin' if instance.is_superuser and instance.is_staff else 'operateur'
+        OperatorProfile.objects.get_or_create(user=instance, defaults={'role': role})
 
-class Commentaire(models.Model):
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='commentaires')
-    auteur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    contenu = models.TextField(verbose_name="Commentaire")
-    date_creation = models.DateTimeField(auto_now_add=True)
+# --- SIGNALS TO KEEP OPERATOR/MACHINE ASSOCIATION IN SYNC ---
+@receiver(post_save, sender=OperatorProfile)
+def sync_operatorprofile_machines(sender, instance, **kwargs):
+    # For each machine in operator's machines, set its operator FK if not already set
+    for machine in instance.machines.all():
+        if machine.operator != instance:
+            machine.operator = instance
+            machine.save(update_fields=["operator"])
+    # For all machines where operator FK is this operator but not in M2M, remove FK
+    Machine.objects.filter(operator=instance).exclude(id__in=instance.machines.values_list('id', flat=True)).update(operator=None)
 
-    class Meta:
-        ordering = ['date_creation']
+@receiver(post_save, sender=Machine)
+def sync_machine_operator(sender, instance, **kwargs):
+    # If machine.operator is set, ensure it's in the operator's M2M
+    if instance.operator:
+        if not instance.operator.machines.filter(id=instance.id).exists():
+            instance.operator.machines.add(instance)
+    # If machine.operator is None, remove from all operator M2M
+    else:
+        for op in OperatorProfile.objects.filter(machines=instance):
+            op.machines.remove(instance)
 
-    def __str__(self):
-        return f"Commentaire de {self.auteur} sur #{self.ticket.pk}"
-
-
-class DemandeIntervention(models.Model):
-    """Modèle pour les demandes d'intervention"""
+class TicketSupport(models.Model):
+    titre = models.CharField(max_length=200, verbose_name="Titre du ticket", default="Sans titre")
+    CATEGORIE_CHOICES = [
+        ('industrielle', 'Industrielle'),
+        ('informatique', 'Informatique'),
+    ]
+    categorie = models.CharField(max_length=30, choices=CATEGORIE_CHOICES, verbose_name="Catégorie", default='industrielle')
+    type_panne = models.CharField(max_length=100, verbose_name="Type de panne", default="Non renseigné")
+    PRIORITE_CHOICES = [
+        ('basse', 'Basse'),
+        ('moyenne', 'Moyenne'),
+        ('haute', 'Haute'),
+    ]
+    priorite = models.CharField(max_length=10, choices=PRIORITE_CHOICES, verbose_name="Priorité", default='moyenne')
+    """Modèle pour les tickets de support"""
     
     NATURE_ANOMALIE_CHOICES = [
         ('mecanique', 'Mécanique'),
@@ -190,10 +132,10 @@ class DemandeIntervention(models.Model):
     ]
     
     # Numéro de demande (généré automatiquement)
-    numero_demande = models.CharField(max_length=50, unique=True, verbose_name="N° de demande")
+    numero_ticket = models.CharField(max_length=50, unique=True, verbose_name="N° de ticket")
     
     # Service et demandeur
-    service_demandeur = models.CharField(max_length=200, verbose_name="Service demandeur")
+    service_support = models.CharField(max_length=200, verbose_name="Service support")
     demandeur = models.CharField(max_length=200, verbose_name="Nom du demandeur")
     
     # Machine concernée
@@ -201,16 +143,16 @@ class DemandeIntervention(models.Model):
     code_machine = models.CharField(max_length=100, verbose_name="Code machine")
     
     # Dates et heures
-    date_demande = models.DateField(verbose_name="Date de demande")
-    heure_demande = models.TimeField(verbose_name="Heure de demande")
+    date_ticket = models.DateField(verbose_name="Date du ticket")
+    heure_ticket = models.TimeField(verbose_name="Heure du ticket")
     delai_souhaite = models.DateField(null=True, blank=True, verbose_name="Délai souhaité")
     
     # Type d'intervention
-    type_intervention = models.BooleanField(default=False, verbose_name="Curative (décocher) / Préventive (cocher)")
+    type_support = models.BooleanField(default=False, verbose_name="Curative (décocher) / Préventive (cocher)")
     
     # Description de l'anomalie
-    description_anomalie = models.TextField(verbose_name="Description de l'anomalie")
-    nature_anomalie = models.CharField(max_length=20, choices=NATURE_ANOMALIE_CHOICES, verbose_name="Nature de l'anomalie")
+    description_probleme = models.TextField(verbose_name="Description du problème")
+    nature_probleme = models.CharField(max_length=20, choices=NATURE_ANOMALIE_CHOICES, verbose_name="Nature du problème")
     
     # Visa et statut
     visa_demandeur = models.CharField(max_length=200, blank=True, verbose_name="Visa du demandeur")
@@ -221,28 +163,33 @@ class DemandeIntervention(models.Model):
     date_modification = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
     
     class Meta:
-        verbose_name = "Demande d'intervention"
-        verbose_name_plural = "Demandes d'intervention"
+        verbose_name = "Ticket de support"
+        verbose_name_plural = "Tickets de support"
         ordering = ['-date_creation']
     
     def __str__(self):
-        return f"{self.numero_demande} - {self.machine.nom}"
+        return f"{self.numero_ticket} - {self.machine.nom}"
     
     def save(self, *args, **kwargs):
-        # Générer automatiquement le numéro de demande si non fourni
-        if not self.numero_demande:
-            current_year = timezone.now().year
-            current_month = timezone.now().month
-            count = DemandeIntervention.objects.filter(
-                date_creation__year=current_year,
-                date_creation__month=current_month
-            ).count()
-            self.numero_demande = f"F_MATN_{current_month:02d}-{current_year}-{count+1:03d}"
-        
+        # Générer automatiquement le numéro de ticket si non fourni
+        if not self.numero_ticket:
+            # Chercher le plus grand numéro existant au format Txxxx
+            last_ticket = TicketSupport.objects.filter(numero_ticket__startswith='T').order_by('-id').first()
+            if last_ticket and last_ticket.numero_ticket[1:].isdigit():
+                last_number = int(last_ticket.numero_ticket[1:])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            # Boucle pour garantir l'unicité (rare mais sûr)
+            while True:
+                candidate = f"T{new_number:04d}"
+                if not TicketSupport.objects.filter(numero_ticket=candidate).exists():
+                    self.numero_ticket = candidate
+                    break
+                new_number += 1
         # Mettre à jour le code machine à partir de la machine
         if self.machine:
             self.code_machine = self.machine.reference
-            
         super().save(*args, **kwargs)
     
     def get_statut_class(self):
@@ -267,8 +214,8 @@ class InterventionTechnique(models.Model):
         ('externe', 'Externe'),
     ]
     
-    # Lien vers la demande d'intervention
-    numero_demande = models.ForeignKey(DemandeIntervention, on_delete=models.CASCADE, null=True, verbose_name="N° de demande")
+    # Lien vers le ticket de support
+    numero_ticket = models.ForeignKey(TicketSupport, on_delete=models.CASCADE, null=True, verbose_name="N° de ticket")
     
     # Type de technicien
     type_technicien = models.CharField(max_length=10, choices=TYPE_TECHNICIEN_CHOICES, verbose_name="Type de technicien")
@@ -321,3 +268,19 @@ class InterventionTechnique(models.Model):
             heures = duree.total_seconds() / 3600
             return f"{heures:.1f} heures"
         return "En cours"
+
+
+# Historique des modifications de ticket (à placer à la fin du fichier, niveau racine)
+
+class TicketHistory(models.Model):
+    ticket = models.ForeignKey('TicketSupport', on_delete=models.CASCADE, related_name='histories')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=255)
+    details = models.TextField(blank=True)
+    date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date} - {self.user}: {self.action}"

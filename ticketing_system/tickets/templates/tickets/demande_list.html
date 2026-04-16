@@ -1,117 +1,112 @@
 {% extends 'tickets/base.html' %}
-
-{% block title %}Liste des Demandes d'Intervention{% endblock %}
-
-{% block page_title %}Demandes d'Intervention{% endblock %}
+{% block title %}Liste des tickets{% endblock %}
+{% block page_title %}<i class="bi bi-ticket-detailed me-2"></i>Tickets ({{ total }}){% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                <i class="bi bi-clipboard-check me-2"></i>
-                Demandes d'Intervention
-                <span class="badge bg-secondary ms-2">{{ total }}</span>
-            </h4>
-            <a href="{% url 'demande_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Nouvelle demande
-            </a>
-        </div>
-    </div>
-</div>
-
 <!-- Filtres -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-3">
-                        {{ form.statut.label_tag }}
-                        {{ form.statut }}
-                    </div>
-                    <div class="col-md-3">
-                        {{ form.nature_anomalie.label_tag }}
-                        {{ form.nature_anomalie }}
-                    </div>
-                    <div class="col-md-3">
-                        {{ form.service_demandeur.label_tag }}
-                        {{ form.service_demandeur }}
-                    </div>
-                    <div class="col-md-3">
-                        {{ form.machine.label_tag }}
-                        {{ form.machine }}
-                    </div>
-                    <div class="col-md-3">
-                        {{ form.type_intervention.label_tag }}
-                        {{ form.type_intervention }}
-                    </div>
-                    <div class="col-md-6">
-                        {{ form.recherche.label_tag }}
-                        {{ form.recherche }}
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="bi bi-search"></i> Filtrer
-                        </button>
-                        <a href="{% url 'demande_list' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-clockwise"></i> Réinitialiser
-                        </a>
-                    </div>
-                </form>
-            </div>
+<div class="form-card mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Catégorie</label>
+            {{ form.categorie_ticket }}
         </div>
-    </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Statut</label>
+            {{ form.statut }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Priorité</label>
+            {{ form.priorite }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-bold">Machine</label>
+            {{ form.machine }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Recherche</label>
+            {{ form.recherche }}
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </form>
 </div>
 
-<!-- Tableau des demandes -->
+<!-- Table -->
 <div class="table-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>{{ total }} ticket{{ total|pluralize }} trouvé{{ total|pluralize }}</span>
+        <!-- <a href="#" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus me-1"></i>Nouveau ticket
+        </a> -->
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>N° Demande</th>
-                    <th>Date/Heure</th>
-                    <th>Service</th>
+                    <th>#</th>
+                    <th>Titre</th>
                     <th>Machine</th>
-                    <th>Demandeur</th>
+                    <th>Catégorie</th>
                     <th>Type</th>
-                    <th>Nature</th>
+                    <th>Priorité</th>
                     <th>Statut</th>
-                    <th>Actions</th>
+                    <th>Assigné à</th>
+                    <th>Créé le</th>
+                    <th>Durée</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
-                {% for demande in demandes %}
+                {% for ticket in tickets %}
                 <tr>
-                    <td class="ticket-num">{{ demande.numero_demande }}</td>
+                    <td><span class="ticket-num">#{{ ticket.pk }}</span></td>
                     <td>
-                        <div>{{ demande.date_demande|date:"d/m/Y" }}</div>
-                        <small class="text-muted">{{ demande.heure_demande|time:"H:i" }}</small>
+                        <a href="{% url 'ticket_detail' ticket.pk %}" class="text-decoration-none text-dark fw-bold">
+                            {{ ticket.titre|truncatechars:50 }}
+                        </a>
                     </td>
-                    <td>{{ demande.service_demandeur }}</td>
                     <td>
-                        <div>{{ demande.machine.nom }}</div>
-                        <small class="text-muted">{{ demande.code_machine }}</small>
+                        {% if ticket.machine %}
+                        <small>{{ ticket.machine.nom }}</small><br>
+                        <small class="text-muted">{{ ticket.machine.localisation }}</small>
+                        {% else %}
+                        <small class="text-muted">—</small>
+                        {% endif %}
                     </td>
-                    <td>{{ demande.demandeur }}</td>
                     <td>
-                        <span class="badge {% if demande.type_intervention %}bg-info{% else %}bg-warning{% endif %}">
-                            {{ demande.get_type_intervention_display }}
+                        <span class="badge" style="background-color: {% if ticket.categorie_ticket == 'industrielle' %}#FF6B35{% else %}#004E89{% endif %}; color: white;">
+                            {{ ticket.get_categorie_ticket_display }}
                         </span>
                     </td>
-                    <td>{{ demande.get_nature_anomalie_display }}</td>
+                    <td><small class="text-muted">{{ ticket.get_type_panne_display }}</small></td>
                     <td>
-                        <span class="badge bg-{{ demande.get_statut_class }}">
-                            {{ demande.get_statut_display }}
+                        <span class="badge badge-priorite-{{ ticket.priorite }}">
+                            {{ ticket.get_priorite_display }}
                         </span>
                     </td>
                     <td>
-                        <div class="btn-group btn-group-sm">
-                            <a href="{% url 'demande_detail' demande.pk %}" class="btn btn-outline-primary" title="Voir">
+                        <span class="badge bg-{{ ticket.get_statut_class }}">
+                            {{ ticket.get_statut_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if ticket.assigne_a %}
+                            <small>{{ ticket.assigne_a.username }}</small>
+                        {% else %}
+                            <small class="text-muted">—</small>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ ticket.date_creation|date:"d/m/Y H:i" }}</small></td>
+                    <td><small class="text-muted">{{ ticket.duree_depuis_creation }}</small></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'ticket_detail' ticket.pk %}" class="btn btn-sm btn-outline-primary" title="Voir">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="{% url 'demande_edit' demande.pk %}" class="btn btn-outline-secondary" title="Modifier">
+                            <a href="{% url 'ticket_edit' ticket.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </div>
@@ -119,9 +114,9 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
-                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                        Aucune demande trouvée
+                    <td colspan="10" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox" style="font-size:3rem;display:block;margin-bottom:10px;"></i>
+                        Aucun ticket trouvé
                     </td>
                 </tr>
                 {% endfor %}
@@ -129,4 +124,9 @@
         </table>
     </div>
 </div>
+
+<style>
+select.form-control, input.form-control { border-radius: 8px; }
+select { padding: 6px 10px; border: 1px solid #dee2e6; border-radius: 8px; width: 100%; }
+</style>
 {% endblock %}

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Ticketing Industriel{% endblock %}</title>
+    <title>{% block title %}Inmission{% endblock %}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
@@ -51,11 +51,33 @@
         .sidebar-brand small { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
         .sidebar-brand .brand-icon {
             width: 50px; height: 50px;
-            background: linear-gradient(135deg, #0d6efd, #0099cc);
+            background: white;
             border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 10px;
-            font-size: 1.5rem; color: white;
+            font-size: 1.5rem; 
+            position: relative;
+            border: 2px solid #e0e0e0;
+        }
+        .sidebar-brand .brand-icon::before {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border: 3px solid #000;
+            border-radius: 50%;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .sidebar-brand .brand-icon::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            background: #00a896;
+            border-radius: 50%;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
         }
         .sidebar-section {
             padding: 10px 15px 5px;
@@ -214,9 +236,9 @@
 <!-- Sidebar -->
 <div class="sidebar d-flex flex-column">
     <div class="sidebar-brand flex-shrink-0">
-        <div class="brand-icon"><i class="bi bi-gear-fill"></i></div>
-        <h5>Supervision Industrielle</h5>
-        <small>Système de Ticketing</small>
+        <div class="brand-icon"></div>
+        <h5>inission</h5>
+        <small>Supervision Industrielle</small>
     </div>
 
     <nav class="mt-2 flex-grow-1">
@@ -224,18 +246,10 @@
         <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i><span>Tableau de bord</span>
         </a>
-        <a href="{% url 'ticket_list' %}" class="nav-link {% if 'ticket' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-ticket-detailed"></i><span>Tickets</span>
-        </a>
-        <a href="{% url 'ticket_create' %}" class="nav-link">
-            <i class="bi bi-plus-circle"></i><span>Nouveau ticket</span>
-        </a>
         <a href="{% url 'demande_dashboard' %}" class="nav-link {% if 'demande' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-clipboard-check"></i><span>Demandes d'intervention</span>
+            <i class="bi bi-clipboard-check"></i><span>Tickets de support</span>
         </a>
-        <a href="{% url 'intervention_dashboard' %}" class="nav-link {% if 'intervention' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-tools"></i><span>Interventions techniques</span>
-        </a>
+    
         <a href="{% url 'viee_dashboard' %}" class="nav-link {% if 'viee' in request.resolver_match.url_name %}active{% endif %}">
             <i class="bi bi-activity"></i><span>Vie des équipements</span>
         </a>
@@ -266,9 +280,12 @@
             <i class="bi bi-person-circle me-1"></i>
             <strong>{{ user.get_full_name|default:user.username }}</strong>
         </div>
-        <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger mt-2 w-100">
-            <i class="bi bi-box-arrow-right"></i> <span>Déconnexion</span>
-        </a>
+        <form action="{% url 'logout' %}" method="post" style="margin-top:8px;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                <i class="bi bi-box-arrow-right"></i> <span>Déconnexion</span>
+            </button>
+        </form>
     </div>
 </div>
 
@@ -277,7 +294,7 @@
     <div class="topbar">
         <h6 class="mb-0 text-muted">{% block page_title %}{% endblock %}</h6>
         <div class="d-flex align-items-center gap-3">
-            <a href="{% url 'ticket_create' %}" class="btn btn-primary btn-sm">
+            <a href="{% url 'demande_create' %}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus"></i> Nouveau ticket
             </a>
             <span class="text-muted small"><i class="bi bi-person me-1"></i>{{ user.username }}</span>

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from tickets.models import Machine, Ticket, Department
+from tickets.models import Machine, Department, InterventionTechnique
 from django.utils import timezone
 import random
 
@@ -69,7 +69,7 @@ class Command(BaseCommand):
 
         admin = User.objects.filter(username='admin').first()
 
-        # Créer des tickets de démonstration
+        # Créer des demandes de démonstration (adapté au modèle `InterventionTechnique`)
         tickets_data = [
             ('Vibrations anormales - tour CNC Alpha', machines[0], 'mecanique', 'critique', 'ouvert',
              'La machine émet des vibrations importantes lors du tournage. Production arrêtée.'),
@@ -89,22 +89,44 @@ class Command(BaseCommand):
              'Température de sortie process 5°C au-dessus consigne. Filtre à nettoyer.'),
         ]
 
+        # statut_map pour correspondre aux choix de `InterventionTechnique`
+        statut_map = {
+            'ouvert': 'en_attente',
+            'en_attente': 'en_attente',
+            'en_cours': 'en_cours',
+            'resolu': 'terminee',
+            'ferme': 'terminee',
+        }
+
+        from tickets.models import TicketSupport
         for titre, machine, type_p, prio, statut, desc in tickets_data:
-            if not Ticket.objects.filter(titre=titre).exists():
-                ticket = Ticket.objects.create(
+            statut_mapped = statut_map.get(statut, 'en_attente')
+            # éviter doublons par titre
+            if not TicketSupport.objects.filter(titre=titre).exists():
+                ticket = TicketSupport.objects.create(
                     titre=titre,
-                    machine=machine,
+                    categorie='industrielle',
                     type_panne=type_p,
-                    priorite=prio,
-                    statut=statut,
-                    description=desc,
-                    cree_par=admin or techniciens[0],
-                    assigne_a=random.choice(techniciens) if random.random() > 0.3 else None,
+                    priorite='moyenne',  # adapt as needed
+                    statut=statut_mapped,
+                    description_probleme=desc,
+                    service_support='Maintenance',
+                    demandeur=(admin.username if admin else 'system'),
+                    machine=machine,
+                    code_machine=machine.reference,
+                    date_ticket=timezone.now().date(),
+                    heure_ticket=timezone.now().time(),
+                    nature_probleme=type_p if type_p in dict(TicketSupport.NATURE_ANOMALIE_CHOICES) else 'autre',
                 )
-                if statut in ['resolu', 'ferme']:
-                    ticket.date_resolution = timezone.now()
-                    ticket.solution = "Intervention effectuée, problème résolu."
-                    ticket.save()
+                # Now create the intervention linked to this ticket
+                InterventionTechnique.objects.create(
+                    nom_technicien=titre,
+                    type_technicien='interne',
+                    description_intervention=desc,
+                    numero_ticket=ticket,
+                    date_prise_en_compte=timezone.now().date(),
+                    heure_prise_en_compte=timezone.now().time(),
+                )
 
         # Assigner les profils aux départements
         dep_informatique = Department.objects.filter(nom='informatique').first()
@@ -124,7 +146,8 @@ class Command(BaseCommand):
         assign_profile(it_user, dep_informatique, 'operateur')
         assign_profile(techniciens[2], dep_maintenance, 'superviseur')
 
+        from tickets.models import TicketSupport
         self.stdout.write(self.style.SUCCESS(
-            f'✅ Données créées: {Machine.objects.count()} machines, {Ticket.objects.count()} tickets\n'
+            f'✅ Données créées: {Machine.objects.count()} machines, {TicketSupport.objects.count()} tickets\n'
             f'   Comptes: admin/admin123 | tech1/demo123 | tech2/demo123 | it1/demo123 | superviseur/demo123'
         ))
