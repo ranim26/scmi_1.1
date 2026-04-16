@@ -1,7 +1,13 @@
 {% extends 'tickets/base.html' %}
 {% load static %}
+{% block page_title %}
+  <i class="bi bi-speedometer2 me-2"></i>Tableau de bord
+  <div class="text-muted" style="font-size: 1.1rem;">{% now "d/m/Y" %}</div>
+
+{% endblock %}
 
 {% block content %}
+
 {% if user.is_authenticated and not user.is_superuser and not user.is_staff and user.operatorprofile.role == 'operateur' %}
   <div class="mb-3 text-end">
     <a href="{% url 'choisir_machines' %}" class="btn btn-outline-primary">
@@ -51,7 +57,39 @@
   <div class="row">
     <div class="col-md-8">
       <div class="card mb-4">
-        <div class="card-header bg-white">Tickets récents</div>
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span>Tickets récents</span>
+          <form method="get" class="d-flex" style="max-width: 350px;">
+            <input type="text" name="search" class="form-control me-2" placeholder="Rechercher une ticket..." value="{{ request.GET.search|default:'' }}" style="border-radius: 2rem; background: #f1f3f4; color: #111; border: 2px solid #b0b0b0; font-weight: 500; font-family: 'Clair', Arial, sans-serif; box-shadow: 0 2px 8px rgba(176, 176, 176, 0.12);">
+            <style>
+              @font-face {
+                font-family: 'Clair';
+                src: local('Clair'), url('/static/fonts/Clair.woff2') format('woff2');
+                font-weight: normal;
+                font-style: normal;
+              }
+              input[name='search']::placeholder {
+                color: #212020 !important;
+                opacity: 1;
+                font-family: 'Clair', Arial, sans-serif;
+              }
+              input[name='search'] {
+                font-family: 'Clair', Arial, sans-serif;
+                background: #f1f3f4;
+                color: #111;
+              }
+            </style>
+            <style>
+              input[name='search']::placeholder {
+                color: #0e0e0e !important;
+                opacity: 1;
+              }
+            </style>
+            <button type="submit" class="btn btn-primary" style="border-radius: 2rem; min-width: 44px;">
+              <i class="bi bi-search"></i>
+            </button>
+          </form>
+        </div>
         <div class="card-body p-0">
           <table class="table mb-0">
             <thead>
@@ -66,7 +104,7 @@
             <tbody>
             {% for ticket in demandes_recentes %}
               <tr>
-                                <td class="ticket-num"><strong>{{ ticket.numero_ticket }}</strong><br><small>{{ ticket.objet }}<br><span class="text-muted">{% if ticket.machine %}{{ ticket.machine.nom }}{% endif %}</span></small></td>
+                <td class="ticket-num"><strong>{{ ticket.numero_ticket }}</strong><br><small>{{ ticket.objet }}<br><span class="text-muted">{% if ticket.machine %}{{ ticket.machine.nom }}{% endif %}</span></small></td>
                 <td>
                   {% if ticket.statut == 'en_attente' or ticket.statut == 'en_cours' %}
                     <span class="badge bg-warning text-dark">En cours</span>
@@ -81,13 +119,13 @@
                   {% endif %}
                 </td>
                 <td><span class="badge bg-warning text-dark">Moyenne</span></td>
-                                <td><span class="badge bg-info text-dark">
-                                  {% if ticket.demandeur %}
-                                    {{ ticket.demandeur }}
-                                  {% else %}
-                                    <span class="text-muted">-</span>
-                                  {% endif %}
-                                </span></td>
+                <td><span class="badge bg-info text-dark">
+                  {% if ticket.demandeur %}
+                    {{ ticket.demandeur }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </span></td>
                 <td>{{ ticket.date_creation|timesince }} ago</td>
               </tr>
             {% endfor %}

@@ -164,7 +164,15 @@ def dashboard(request):
     tickets_validees = ticket_base_qs.filter(statut='validee').count()
     tickets_annulees = ticket_base_qs.filter(statut='annulee').count()
 
-    tickets_recents = ticket_base_qs.select_related('machine').order_by('-date_creation')[:10]
+    search_query = request.GET.get('search', '').strip()
+    tickets_recents_qs = ticket_base_qs.select_related('machine').order_by('-date_creation')
+    if search_query:
+        tickets_recents_qs = tickets_recents_qs.filter(
+            Q(numero_ticket__icontains=search_query) |
+            Q(titre__icontains=search_query) |
+            Q(machine__nom__icontains=search_query)
+        )
+    tickets_recents = tickets_recents_qs[:10]
 
     stats_machines = machine_base_qs.filter(actif=True).annotate(
         nb_tickets=Count('ticketsupport'),
