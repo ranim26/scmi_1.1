@@ -1,0 +1,35 @@
+{% extends 'tickets/base.html' %}
+{% block content %}
+<h2>Historique des tickets</h2>
+
+<form method="get" class="mb-3" autocomplete="off">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="Rechercher..." value="{{ query|default:'' }}">
+        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Rechercher</button>
+    </div>
+</form>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Utilisateur</th>
+            <th>Action</th>
+            <th>Détails</th>
+            <th>Ticket</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for h in histories %}
+        <tr>
+            <td>{{ h.date|date:'d/m/Y H:i' }}</td>
+            <td>{{ h.user }}</td>
+            <td>{{ h.action }}</td>
+            <td>{{ h.details }}</td>
+            <td>{{ h.ticket }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Aucun historique trouvé.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

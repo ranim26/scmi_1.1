@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Inission{% endblock %}</title>
+    <title>{% block title %}Inission-Supervision{% endblock %}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
@@ -249,6 +249,10 @@
         <a href="{% url 'demande_dashboard' %}" class="nav-link {% if 'demande' in request.resolver_match.url_name %}active{% endif %}">
             <i class="bi bi-clipboard-check"></i><span>Tickets de support</span>
         </a>
+
+            <a href="{% url 'ticket_history_list' %}" class="nav-link {% if request.resolver_match.url_name == 'ticket_history_list' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i><span>Historique des tickets</span>
+            </a>
     
         <a href="{% url 'viee_dashboard' %}" class="nav-link {% if 'viee' in request.resolver_match.url_name %}active{% endif %}">
             <i class="bi bi-activity"></i><span>Vie des équipements</span>

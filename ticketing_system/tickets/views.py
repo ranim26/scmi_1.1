@@ -737,8 +737,17 @@ def demande_change_statut(request, pk, statut):
     demande = get_object_or_404(TicketSupport, pk=pk)
     statuts_valides = [s[0] for s in TicketSupport.STATUT_CHOICES]
     if statut in statuts_valides:
+        ancien_statut = demande.get_statut_display()
         demande.statut = statut
         demande.save()
+        # Historique du changement de statut
+        from .models import TicketHistory
+        TicketHistory.objects.create(
+            ticket=demande,
+            user=request.user if request.user.is_authenticated else None,
+            action="Changement de statut",
+            details=f"Statut changé de '{ancien_statut}' à '{demande.get_statut_display()}' par {request.user.get_full_name() or request.user.username}",
+        )
         messages.success(request, f"Statut changé en '{demande.get_statut_display()}'")
     return redirect('demande_detail', pk=pk)
 

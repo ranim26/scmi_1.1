@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views_ticket_history import ticket_history_list
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -34,4 +35,6 @@ urlpatterns = [
     path('interventions/from-ticket/<int:ticket_pk>/', views.intervention_create_from_ticket, name='intervention_create_from_ticket'),
     # AJAX endpoint for operator filtering by department
     path('ajax/get-operators/', views.get_operators_by_department, name='get_operators_by_department'),
+    # Historique des tickets
+    path('tickets/historique/', ticket_history_list, name='ticket_history_list'),
 ]
