@@ -139,3 +139,5 @@
 2026-04-20 10:40:22,931 [WARNING] slowrequests: POST /demandes/nouvelle/ — 2320.25 ms — 12 queries
 2026-04-20 10:49:35,971 [WARNING] slowrequests: POST /demandes/nouvelle/ — 2171.96 ms — 13 queries
 2026-04-20 10:52:04,300 [WARNING] slowrequests: POST /demandes/nouvelle/ — 3797.66 ms — 13 queries
+2026-04-20 14:13:29,530 [WARNING] slowrequests: POST /login/ — 265.39 ms — 9 queries
+2026-04-20 14:16:48,755 [WARNING] slowrequests: POST /demandes/nouvelle/ — 3920.58 ms — 14 queries

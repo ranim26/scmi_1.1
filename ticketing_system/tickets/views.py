@@ -655,11 +655,11 @@ def demande_create(request):
             for fichier in fichiers:
                 TicketSupportFile.objects.create(ticket=demande, fichier=fichier)
 
-            # --- ENVOI EMAIL ALERT ---
+            # --- ENVOI EMAIL ALERT élargi ---
             try:
                 smtp_settings = SMTPSettings.objects.filter(active=True).first()
                 if smtp_settings:
-                    # Préparer la connexion SMTP personnalisée
+                    from django.contrib.auth.models import User
                     connection = get_connection(
                         host=smtp_settings.host,
                         port=smtp_settings.port,
@@ -668,21 +668,32 @@ def demande_create(request):
                         use_tls=smtp_settings.use_tls,
                         use_ssl=smtp_settings.use_ssl,
                     )
-                    # Trouver les utilisateurs concernés par la machine
-                    users = []
+                    recipient_emails = set()
+                    # Opérateurs liés à la machine
                     if demande.machine:
-                        # Tous les opérateurs liés à la machine
-                        users = [op.user for op in demande.machine.operatorprofile_set.all() if op.user.email]
-                    # Si aucun, notifier les admins
-                    if not users:
-                        from django.contrib.auth.models import User
-                        users = User.objects.filter(is_superuser=True)
-                    recipient_list = [u.email for u in users if u.email]
+                        recipient_emails.update([
+                            op.user.email for op in demande.machine.operatorprofile_set.all() if op.user and op.user.email
+                        ])
+                        # Superviseur du département
+                        if demande.machine.department:
+                            superviseurs = User.objects.filter(
+                                operatorprofile__role='superviseur',
+                                operatorprofile__department=demande.machine.department
+                            )
+                            for sup in superviseurs:
+                                if sup.email:
+                                    recipient_emails.add(sup.email)
+                    # Admins (toujours)
+                    admins = User.objects.filter(is_superuser=True)
+                    for admin in admins:
+                        if admin.email:
+                            recipient_emails.add(admin.email)
+                    recipient_list = list(recipient_emails)
                     if recipient_list:
-                        subject = f"Nouvelle demande de ticket pour la machine {demande.machine.nom}"
+                        subject = f"Nouvelle demande de ticket pour la machine {demande.machine.nom if demande.machine else ''}"
                         message = (
                             f"Bonjour,\n\n"
-                            f"Un nouveau ticket a été créé concernant la machine : {demande.machine.nom}.\n\n"
+                            f"Un nouveau ticket a été créé concernant la machine : {demande.machine.nom if demande.machine else 'N/A'}.\n\n"
                             f"Détails du ticket :\n"
                             f"- Sujet : {demande.titre}\n"
                             f"- Description : {demande.description_probleme}\n"
