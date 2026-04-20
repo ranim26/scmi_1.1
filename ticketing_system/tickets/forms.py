@@ -36,6 +36,11 @@ class TicketSupportForm(forms.ModelForm):
             'description_probleme': forms.Textarea(attrs={'rows': 4}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['nature_probleme'].required = True
+        self.fields['description_probleme'].required = True
+
 
 class TicketSupportUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

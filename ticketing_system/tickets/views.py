@@ -172,7 +172,7 @@ def dashboard(request):
             Q(titre__icontains=search_query) |
             Q(machine__nom__icontains=search_query)
         )
-    tickets_recents = tickets_recents_qs[:10]
+    tickets_recents = tickets_recents_qs[:5]
 
     stats_machines = machine_base_qs.filter(actif=True).annotate(
         nb_tickets=Count('ticketsupport'),
@@ -185,11 +185,20 @@ def dashboard(request):
         date_prise_en_compte__month=timezone.now().month
     ).count()
 
+    search_machine = request.GET.get('search_machine', '').strip()
     all_machines_qs = machine_base_qs.annotate(
         nb_tickets=Count('ticketsupport', distinct=True),
         nb_ouverts=Count('ticketsupport', filter=Q(ticketsupport__statut__in=['en_attente', 'validee', 'en_cours']), distinct=True),
         nb_annulees=Count('ticketsupport', filter=Q(ticketsupport__statut='annulee'), distinct=True)
-    ).order_by('pk')
+    )
+    if search_machine:
+        all_machines_qs = all_machines_qs.filter(
+            Q(nom__icontains=search_machine) |
+            Q(reference__icontains=search_machine) |
+            Q(localisation__icontains=search_machine) |
+            Q(department__nom__icontains=search_machine)
+        )
+    all_machines_qs = all_machines_qs.order_by('pk')
     all_machines_dict = {}
     for m in all_machines_qs:
         all_machines_dict[m.pk] = m
@@ -496,7 +505,19 @@ def demande_dashboard(request):
     terminees = tickets_qs.filter(statut='terminee').count()
     annulees = tickets_qs.filter(statut='annulee').count()
 
-    # Tickets récents
+
+    # Recherche par mot-clé
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        tickets_qs = tickets_qs.filter(
+            Q(numero_ticket__icontains=search_query) |
+            Q(titre__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(demandeur__icontains=search_query) |
+            Q(machine__nom__icontains=search_query)
+        )
+
+    # Tickets récents (après filtrage)
     demandes_recentes = tickets_qs.select_related('machine').order_by('-date_creation')[:10]
 
     # Tickets par service
@@ -515,6 +536,7 @@ def demande_dashboard(request):
         'demandes_recentes': demandes_recentes,
         'stats_services': stats_services,
         'stats_natures': stats_natures,
+        'request': request,  # pour pré-remplir la barre de recherche
     }
     return render(request, 'tickets/demande_dashboard.html', context)
 
@@ -610,6 +632,9 @@ def demande_create(request):
         if form.is_valid():
             demande = form.save(commit=False)
             from django.utils import timezone
+            # Remplit automatiquement le nom du demandeur avec l'utilisateur connecté
+            if request.user.is_authenticated:
+                demande.demandeur = request.user.get_full_name() or request.user.username
             # Remplit date_ticket et heure_ticket si non fournis
             if not demande.date_ticket:
                 demande.date_ticket = timezone.now().date()

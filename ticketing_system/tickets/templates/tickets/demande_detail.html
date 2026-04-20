@@ -106,23 +106,41 @@
       <div class="card-body">
         <div class="row mb-3">
           <div class="col-md-6">
-            <label class="form-label text-muted">Type d'intervention</label>
-            <div>
-                <span class="badge {% if demande.type_support %}bg-info{% else %}bg-warning{% endif %} fs-6">
-                  {{ demande.get_type_support_display }}
-                </span>
-            </div>
+            <label class="form-label text-muted">Nature de problème</label>
+            <div class="fw-bold">{{ demande.get_nature_probleme_display }}</div>
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted">Nature de l'anomalie</label>
-            <div class="fw-bold">{{ demande.get_nature_anomalie_display }}</div>
+            <label class="form-label text-muted">Priorité</label>
+            <div>
+              <span class="badge 
+                {% if demande.priorite == 'haute' %}bg-danger
+                {% elif demande.priorite == 'moyenne' %}bg-warning text-dark
+                {% else %}bg-success
+                {% endif %}">
+                {{ demande.get_priorite_display }}
+              </span>
+            </div>
           </div>
         </div>
         <div>
           <label class="form-label text-muted">Description de l'anomalie</label>
-          <div class="border rounded p-3 bg-light">
-            {{ demande.description_anomalie|linebreaks }}
+          <div class="border rounded p-3 bg-light mb-3">
+            {{ demande.description_probleme|linebreaks }}
           </div>
+          <label class="form-label text-muted">Fichiers joints</label>
+          {% if fichiers and fichiers.count %}
+            <ul class="list-unstyled ms-2">
+              {% for fichier in fichiers %}
+                <li>
+                  <a href="{{ fichier.fichier.url }}" target="_blank">
+                    <i class="bi bi-paperclip"></i> {{ fichier.fichier.name|slice:'30:' }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="text-muted">Aucun fichier joint</div>
+          {% endif %}
         </div>
       </div>
     </div>
