@@ -130,3 +130,7 @@
 2026-04-14 14:45:09,614 [WARNING] slowrequests: GET /admin/auth/user/ — 238.05 ms — 6 queries
 2026-04-16 13:43:14,619 [WARNING] slowrequests: GET /admin/auth/user/ — 323.90 ms — 6 queries
 2026-04-16 14:26:50,085 [WARNING] slowrequests: POST /login/ — 276.97 ms — 9 queries
+2026-04-20 09:03:27,411 [WARNING] slowrequests: POST /login/ — 451.11 ms — 9 queries
+2026-04-20 09:06:22,142 [WARNING] slowrequests: POST /login/ — 497.18 ms — 9 queries
+2026-04-20 09:10:00,189 [WARNING] slowrequests: POST /login/ — 570.45 ms — 9 queries
+2026-04-20 09:10:13,521 [WARNING] slowrequests: POST /login/ — 463.49 ms — 9 queries
