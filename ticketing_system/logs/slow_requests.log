@@ -141,3 +141,7 @@
 2026-04-20 10:52:04,300 [WARNING] slowrequests: POST /demandes/nouvelle/ — 3797.66 ms — 13 queries
 2026-04-20 14:13:29,530 [WARNING] slowrequests: POST /login/ — 265.39 ms — 9 queries
 2026-04-20 14:16:48,755 [WARNING] slowrequests: POST /demandes/nouvelle/ — 3920.58 ms — 14 queries
+2026-04-21 09:54:24,186 [WARNING] slowrequests: GET /demandes/dashboard/?search=informatique — 378.60 ms — 103 queries
+2026-04-21 10:52:11,103 [WARNING] slowrequests: POST /login/ — 466.86 ms — 9 queries
+2026-04-21 11:02:26,247 [WARNING] slowrequests: POST /login/ — 455.56 ms — 9 queries
+2026-04-21 11:14:15,368 [WARNING] slowrequests: POST /demandes/nouvelle/ — 7109.01 ms — 15 queries

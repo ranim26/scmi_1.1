@@ -512,7 +512,7 @@ def demande_dashboard(request):
         tickets_qs = tickets_qs.filter(
             Q(numero_ticket__icontains=search_query) |
             Q(titre__icontains=search_query) |
-            Q(description__icontains=search_query) |
+            Q(description_probleme__icontains=search_query) |
             Q(demandeur__icontains=search_query) |
             Q(machine__nom__icontains=search_query)
         )
