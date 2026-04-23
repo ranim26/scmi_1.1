@@ -145,6 +145,7 @@
 2026-04-21 10:52:11,103 [WARNING] slowrequests: POST /login/ — 466.86 ms — 9 queries
 2026-04-21 11:02:26,247 [WARNING] slowrequests: POST /login/ — 455.56 ms — 9 queries
 2026-04-21 11:14:15,368 [WARNING] slowrequests: POST /demandes/nouvelle/ — 7109.01 ms — 15 queries
+<<<<<<< HEAD
 2026-04-22 19:16:48,625 [WARNING] slowrequests: POST /login/ — 303.21 ms — 9 queries
 2026-04-22 19:19:02,190 [WARNING] slowrequests: POST /login/ — 304.87 ms — 9 queries
 2026-04-22 19:20:43,329 [WARNING] slowrequests: POST /login/ — 320.78 ms — 9 queries
@@ -157,3 +158,6 @@
 2026-04-23 11:11:22,386 [WARNING] slowrequests: POST /login/ — 370.48 ms — 9 queries
 2026-04-23 11:12:06,631 [WARNING] slowrequests: POST /demandes/nouvelle/ — 8521.45 ms — 22 queries
 2026-04-23 11:12:16,866 [WARNING] slowrequests: POST /login/ — 358.21 ms — 9 queries
+=======
+2026-04-23 10:58:25,789 [WARNING] slowrequests: POST /login/ — 777.72 ms — 9 queries
+>>>>>>> b96901710813715a7902fadf764d8b446fb6be71

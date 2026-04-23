@@ -192,20 +192,27 @@ class TicketSupport(models.Model):
     def save(self, *args, **kwargs):
         # Générer automatiquement le numéro de ticket si non fourni
         if not self.numero_ticket:
-            # Chercher le plus grand numéro existant au format Txxxx
-            last_ticket = TicketSupport.objects.filter(numero_ticket__startswith='T').order_by('-id').first()
-            if last_ticket and last_ticket.numero_ticket[1:].isdigit():
-                last_number = int(last_ticket.numero_ticket[1:])
-                new_number = last_number + 1
-            else:
-                new_number = 1
-            # Boucle pour garantir l'unicité (rare mais sûr)
-            while True:
-                candidate = f"T{new_number:04d}"
-                if not TicketSupport.objects.filter(numero_ticket=candidate).exists():
-                    self.numero_ticket = candidate
-                    break
-                new_number += 1
+            from django.db import transaction
+            with transaction.atomic():
+                # Verrouiller la table pour éviter les race conditions
+                last_ticket = TicketSupport.objects.select_for_update().filter(
+                    numero_ticket__startswith='T'
+                ).order_by('-id').first()
+                
+                if last_ticket and last_ticket.numero_ticket[1:].isdigit():
+                    last_number = int(last_ticket.numero_ticket[1:])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+                
+                # Boucle pour garantir l'unicité
+                while True:
+                    candidate = f"T{new_number:04d}"
+                    if not TicketSupport.objects.filter(numero_ticket=candidate).exists():
+                        self.numero_ticket = candidate
+                        break
+                    new_number += 1
+        
         # Mettre à jour le code machine à partir de la machine
         if self.machine:
             self.code_machine = self.machine.reference
@@ -272,7 +279,7 @@ class InterventionTechnique(models.Model):
         ordering = ['-date_creation']
     
     def __str__(self):
-        return f"Intervention pour {self.numero_demande.numero_demande}"
+        return f"Intervention pour {self.numero_ticket.numero_ticket}"
     
     def get_type_technicien_display_custom(self):
         """Retourne l'affichage du type de technicien"""
