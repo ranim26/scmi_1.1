@@ -263,6 +263,9 @@
         <a href="{% url 'machine_list' %}" class="nav-link {% if 'machine' in request.resolver_match.url_name %}active{% endif %}">
             <i class="bi bi-cpu"></i><span>Machines</span>
         </a>
+            <a href="{% url 'machine_spare_parts' %}" class="nav-link {% if request.resolver_match.url_name == 'machine_spare_parts' %}active{% endif %}">
+                <i class="bi bi-tools"></i><span>Pièces de rechange</span>
+            </a>
         <a href="{% url 'machine_create' %}" class="nav-link">
             <i class="bi bi-plus-square"></i><span>Ajouter machine</span>
         </a>

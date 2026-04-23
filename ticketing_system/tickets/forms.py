@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Field
-from .models import Machine, TicketSupport, OperatorProfile, Department, InterventionTechnique
+from .models import Machine, TicketSupport, OperatorProfile, Department, InterventionTechnique, SparePart
 
 class TicketSupportForm(forms.ModelForm):
 
@@ -280,4 +280,26 @@ class UserEditForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nom'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class SparePartForm(forms.ModelForm):
+    machines = forms.ModelMultipleChoiceField(
+        queryset=Machine.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False,
+        label="Machines concernées"
+    )
+
+    class Meta:
+        model = SparePart
+        fields = ['nom', 'reference', 'machines', 'quantite']
+        labels = {
+            'nom': 'Nom de la pièce',
+            'reference': 'Référence',
+            'quantite': 'Quantité disponible',
+        }
+        widgets = {
+            'nom': forms.TextInput(attrs={'class': 'form-control'}),
+            'reference': forms.TextInput(attrs={'class': 'form-control'}),
+            'quantite': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }

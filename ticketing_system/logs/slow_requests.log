@@ -145,3 +145,15 @@
 2026-04-21 10:52:11,103 [WARNING] slowrequests: POST /login/ — 466.86 ms — 9 queries
 2026-04-21 11:02:26,247 [WARNING] slowrequests: POST /login/ — 455.56 ms — 9 queries
 2026-04-21 11:14:15,368 [WARNING] slowrequests: POST /demandes/nouvelle/ — 7109.01 ms — 15 queries
+2026-04-22 19:16:48,625 [WARNING] slowrequests: POST /login/ — 303.21 ms — 9 queries
+2026-04-22 19:19:02,190 [WARNING] slowrequests: POST /login/ — 304.87 ms — 9 queries
+2026-04-22 19:20:43,329 [WARNING] slowrequests: POST /login/ — 320.78 ms — 9 queries
+2026-04-23 10:16:42,256 [WARNING] slowrequests: POST /login/ — 360.20 ms — 9 queries
+2026-04-23 10:25:20,674 [WARNING] slowrequests: POST /demandes/nouvelle/ — 11738.24 ms — 20 queries
+2026-04-23 10:28:29,353 [WARNING] slowrequests: POST /login/ — 357.15 ms — 9 queries
+2026-04-23 10:42:07,370 [WARNING] slowrequests: POST /demandes/nouvelle/ — 8528.12 ms — 16 queries
+2026-04-23 10:42:15,569 [WARNING] slowrequests: POST /login/ — 334.43 ms — 9 queries
+2026-04-23 10:43:12,404 [WARNING] slowrequests: POST /login/ — 336.46 ms — 9 queries
+2026-04-23 11:11:22,386 [WARNING] slowrequests: POST /login/ — 370.48 ms — 9 queries
+2026-04-23 11:12:06,631 [WARNING] slowrequests: POST /demandes/nouvelle/ — 8521.45 ms — 22 queries
+2026-04-23 11:12:16,866 [WARNING] slowrequests: POST /login/ — 358.21 ms — 9 queries

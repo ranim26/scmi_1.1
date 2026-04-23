@@ -5,14 +5,15 @@ from .views_ticket_history import ticket_history_list
 urlpatterns = [
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('machines/spare-parts/', views.machine_spare_parts_view, name='machine_spare_parts'),
     # Machines
     path('machines/<int:pk>/details/', views.machine_details, name='machine_details'),
     path('machines/', views.machine_list, name='machine_list'),
     path('machines/nouvelle/', views.machine_create, name='machine_create'),
     path('machines/<int:pk>/modifier/', views.machine_edit, name='machine_edit'),
     path('machines/<int:pk>/supprimer/', views.machine_delete, name='machine_delete'),
-    path('machines/<int:pk>/activer/', views.activate_machine, name='machine_activate'),
-    path('machines/<int:pk>/desactiver/', views.deactivate_machine, name='machine_deactivate'),
+    # path('machines/<int:pk>/activer/', views.activate_machine, name='machine_activate'),
+    # path('machines/<int:pk>/desactiver/', views.deactivate_machine, name='machine_deactivate'),
     path('profil/machines/', views.choisir_machines, name='choisir_machines'),
     # Gestion des utilisateurs (Admin uniquement)
     path('utilisateurs/', views.user_list, name='user_list'),
@@ -37,4 +38,5 @@ urlpatterns = [
     path('ajax/get-operators/', views.get_operators_by_department, name='get_operators_by_department'),
     # Historique des tickets
     path('tickets/historique/', ticket_history_list, name='ticket_history_list'),
+    path('spare-parts/ajouter/', views.add_spare_part, name='add_spare_part'),
 ]

@@ -3,10 +3,29 @@ from .models_smtp import SMTPSettings
 from django.db import models
 from .models_ticket_file import TicketSupportFile
 from django.contrib.auth.models import User
+
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
+
+
+# --- Pièces de rechange (Spare Parts) ---
+class SparePart(models.Model):
+    nom = models.CharField(max_length=200, verbose_name="Nom de la pièce")
+    reference = models.CharField(max_length=100, unique=True, verbose_name="Référence pièce")
+    description = models.TextField(blank=True, verbose_name="Description")
+    machines = models.ManyToManyField('Machine', related_name='spare_parts', blank=True, verbose_name="Machines concernées")
+    quantite = models.PositiveIntegerField(default=0, verbose_name="Quantité disponible")
+    actif = models.BooleanField(default=True, verbose_name="Active")
+
+    class Meta:
+        verbose_name = "Pièce de rechange"
+        verbose_name_plural = "Pièces de rechange"
+        ordering = ['nom']
+
+    def __str__(self):
+        return f"{self.nom} ({self.reference})"
 
 
 class Machine(models.Model):

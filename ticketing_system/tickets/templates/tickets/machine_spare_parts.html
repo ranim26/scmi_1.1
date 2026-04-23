@@ -1,0 +1,83 @@
+{% extends 'tickets/base.html' %}
+{% block title %}Pièces de rechange par machine{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Pièces de rechange par machine</h2>
+    <a href="{% url 'add_spare_part' %}" class="btn btn-primary">
+      <i class="bi bi-plus"></i> Ajouter une pièce de rechange
+    </a>
+  </div>
+  <div class="row g-4">
+    {% for machine in machines %}
+    <div class="col-md-4 col-lg-3">
+      <div class="stat-card h-100" style="position:relative;">
+        <div style="font-size:2rem;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+          {% if machine.actif %}⚙️{% else %}🔴{% endif %}
+          <button type="button" class="btn btn-sm btn-outline-primary ms-auto" data-bs-toggle="modal" data-bs-target="#sparePartsModal{{ machine.id }}" title="Voir les pièces de rechange">
+            <i class="bi bi-gear"></i>
+          </button>
+        </div>
+        <h6 class="mb-1">{{ machine.nom }}</h6>
+        <p class="text-muted small mb-1">
+          <i class="bi bi-tag me-1"></i>{{ machine.reference }}
+        </p>
+        <div class="mb-2">
+          <strong>Pièces de rechange :</strong>
+          {% if machine.spare_parts.all %}
+            <ul class="mb-0 ps-3">
+              {% for part in machine.spare_parts.all %}
+                <li>{{ part.nom }} ({{ part.reference }}) - {{ part.quantite }} en stock</li>
+              {% empty %}
+                <span class="text-muted">Aucune pièce disponible</span>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="text-muted">Aucune pièce disponible</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      <i class="bi bi-tools" style="font-size:4rem;display:block;margin-bottom:15px;"></i>
+      Aucune machine enregistrée.<br>
+    </div>
+    {% endfor %}
+    <!-- Move all modals outside the grid for reliability -->
+    {% for machine in machines %}
+    <div class="modal fade" id="sparePartsModal{{ machine.id }}" tabindex="-1" aria-labelledby="sparePartsModalLabel{{ machine.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="sparePartsModalLabel{{ machine.id }}">
+              <i class="bi bi-gear me-2"></i>Pièces de rechange pour {{ machine.nom }}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
+          <div class="modal-body">
+            {% if machine.spare_parts.all %}
+              <ul class="list-group mb-3">
+                {% for part in machine.spare_parts.all %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ part.nom }}</strong> <span class="text-muted">({{ part.reference }})</span>
+                      <br><small>{{ part.description|default:'-' }}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">{{ part.quantite }} en stock</span>
+                  </li>
+                {% empty %}
+                  <li class="list-group-item text-muted">Aucune pièce de rechange disponible pour cette machine.</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="alert alert-info">Aucune pièce de rechange disponible pour cette machine.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

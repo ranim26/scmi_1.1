@@ -8,62 +8,29 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Machine, TicketSupport, InterventionTechnique, OperatorProfile, Department
-from .forms import UserEditForm, MachineForm, TicketSupportForm, TicketSupportUpdateForm, UserCreationForm, UserUpdateForm, OperatorProfileForm, FiltreTicketSupportForm
-from django.contrib.auth.models import User
-import datetime
-import datetime
-from django.shortcuts import get_object_or_404
-# --- Contrôle activation/désactivation machine ---
-def activate_machine(request, pk):
-    if not is_admin_or_supervisor(request.user):
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
-        messages.error(request, "Vous n'avez pas la permission d'activer une machine.")
-        return redirect('machine_list')
-    machine = get_object_or_404(Machine, pk=pk)
-    machine.actif = True
-    machine.save()
-    # Calculer quelques compteurs mis à jour pour la UI
-    nb_demandes = TicketSupport.objects.filter(machine=machine).count()
-    nb_ouverts = TicketSupport.objects.filter(machine=machine, statut__in=['en_attente', 'validee', 'en_cours']).count()
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'etat': 'active', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
-    messages.success(request, f"La machine {machine.nom} a été activée.")
-    # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
-    referer = request.META.get('HTTP_REFERER', '')
-    if 'dashboard' in referer:
-        return redirect('dashboard')
-    return redirect('machine_list')
+from .models import Machine, TicketSupport, InterventionTechnique, OperatorProfile, Department, SparePart
+from .forms import UserEditForm, MachineForm, TicketSupportForm, TicketSupportUpdateForm, UserCreationForm, UserUpdateForm, OperatorProfileForm, FiltreTicketSupportForm, SparePartForm
 
+# --- Pièces de rechange par machine ---
+from django.contrib.auth.decorators import login_required
 
-def deactivate_machine(request, pk):
-    if not is_admin_or_supervisor(request.user):
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
-        messages.error(request, "Vous n'avez pas la permission de désactiver une machine.")
-        return redirect('machine_list')
-    machine = get_object_or_404(Machine, pk=pk)
-    machine.actif = False
-    machine.save()
-    # Calculer quelques compteurs mis à jour pour la UI
-    nb_demandes = TicketSupport.objects.filter(machine=machine).count()
-    nb_ouverts = TicketSupport.objects.filter(machine=machine, statut__in=['en_attente', 'validee', 'en_cours']).count()
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'etat': 'inactive', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
-    messages.success(request, f"La machine {machine.nom} a été désactivée.")
-    # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
-    referer = request.META.get('HTTP_REFERER', '')
-    if 'dashboard' in referer:
-        return redirect('dashboard')
-    return redirect('machine_list')
+@login_required
+def machine_spare_parts_view(request):
+    machines = Machine.objects.prefetch_related('spare_parts').all()
+    return render(request, 'tickets/machine_spare_parts.html', {'machines': machines})
 
-def is_admin_or_supervisor(user):
-    """Vérifie si l'utilisateur est admin ou superviseur."""
-    if user.is_superuser or user.is_staff:
-        return True
-    profile = getattr(user, 'operatorprofile', None)
-    return profile and profile.role == 'superviseur'
+@login_required
+def add_spare_part(request):
+    if request.method == 'POST':
+        form = SparePartForm(request.POST)
+        if form.is_valid():
+            spare_part = form.save()
+            # form.save_m2m()  # Not needed, handled by ModelForm save()
+            messages.success(request, 'Pièce de rechange ajoutée avec succès.')
+            return redirect('machine_spare_parts')
+    else:
+        form = SparePartForm()
+    return render(request, 'tickets/add_spare_part.html', {'form': form})
 
 # Vue pour choisir les machines de l'opérateur
 @login_required
@@ -83,6 +50,14 @@ def choisir_machines(request):
         form = OperatorProfileForm(instance=profile)
 
     return render(request, 'tickets/choisir_machines.html', {'form': form})
+    """Vérifie si l'utilisateur est admin ou superviseur."""
+    if user.is_superuser or user.is_staff:
+        return True
+    profile = getattr(user, 'operatorprofile', None)
+    return profile and profile.role == 'superviseur'
+
+
+def is_admin_or_supervisor(user):
     """Vérifie si l'utilisateur est admin ou superviseur."""
     if user.is_superuser or user.is_staff:
         return True
