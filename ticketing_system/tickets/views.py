@@ -12,7 +12,6 @@ from .models import Machine, TicketSupport, InterventionTechnique, OperatorProfi
 from .forms import UserEditForm, MachineForm, TicketSupportForm, TicketSupportUpdateForm, UserCreationForm, UserUpdateForm, OperatorProfileForm, FiltreTicketSupportForm
 from django.contrib.auth.models import User
 import datetime
-import datetime
 from django.shortcuts import get_object_or_404
 # --- Contrôle activation/désactivation machine ---
 def activate_machine(request, pk):
@@ -83,11 +82,6 @@ def choisir_machines(request):
         form = OperatorProfileForm(instance=profile)
 
     return render(request, 'tickets/choisir_machines.html', {'form': form})
-    """Vérifie si l'utilisateur est admin ou superviseur."""
-    if user.is_superuser or user.is_staff:
-        return True
-    profile = getattr(user, 'operatorprofile', None)
-    return profile and profile.role == 'superviseur'
 
 
 def is_admin(user):

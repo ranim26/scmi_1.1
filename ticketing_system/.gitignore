@@ -1,0 +1,15 @@
+venv312/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.vscode/settings.json
+db.sqlite3
+logs/
+media/
