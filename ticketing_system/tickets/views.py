@@ -1,5 +1,34 @@
-from django.core.mail import EmailMessage, get_connection
+# View to add a new spare part
+from .forms import SparePartForm
+from django.contrib.auth.decorators import login_required
+@login_required
+def add_spare_part(request):
+    if request.method == 'POST':
+        form = SparePartForm(request.POST)
+        if form.is_valid():
+            spare_part = form.save()
+            form.save_m2m()
+            from django.contrib import messages
+            messages.success(request, f"Pièce de rechange '{spare_part.nom}' ajoutée avec succès.")
+            return redirect('machine_spare_parts')
+    else:
+        form = SparePartForm()
+    return render(request, 'tickets/add_spare_part.html', {'form': form})
+# ...existing code...
 from .models_smtp import SMTPSettings
+# ...existing code...
+from .models import SparePart
+# View to display all machines and their spare parts
+from django.contrib.auth.decorators import login_required
+@login_required
+def machine_spare_parts_view(request):
+    from .models import Machine
+    machines = Machine.objects.prefetch_related('spare_parts').all()
+    spare_parts = SparePart.objects.all()
+    return render(request, 'tickets/machine_spare_parts.html', {
+        'machines': machines,
+        'spare_parts': spare_parts,
+    })
 # Imports principaux
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
