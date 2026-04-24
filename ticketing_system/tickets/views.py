@@ -25,10 +25,35 @@ def machine_spare_parts_view(request):
     from .models import Machine
     machines = Machine.objects.prefetch_related('spare_parts').all()
     spare_parts = SparePart.objects.all()
+    
+    # Alertes stock critique
+    stock_critique = spare_parts.filter(quantite__lt=3, actif=True)
+    
     return render(request, 'tickets/machine_spare_parts.html', {
         'machines': machines,
         'spare_parts': spare_parts,
+        'stock_critique': stock_critique,
     })
+
+@login_required
+def manage_stock_reservation(request, reservation_id, action):
+    """Gérer les réservations de stock (consommer/annuler)"""
+    reservation = get_object_or_404(StockReservation, id=reservation_id)
+    
+    # Vérifier les permissions
+    if not is_admin_or_supervisor(request.user):
+        messages.error(request, "Vous n'avez pas la permission de gérer les réservations.")
+        return redirect('dashboard')
+    
+    if action == 'consommer':
+        reservation.consommer()
+        messages.success(request, f"Réservation consommée : {reservation}")
+    elif action == 'annuler':
+        piece_nom = reservation.piece.nom
+        reservation.annuler()
+        messages.success(request, f"Réservation annulée et stock restitué pour : {piece_nom}")
+    
+    return redirect('dashboard')
 # Imports principaux
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -142,6 +167,17 @@ def home(request):
 
 @login_required
 def dashboard(request):
+    # Récupérer le stock des pièces de rechange
+    spare_parts = SparePart.objects.all().order_by('nom')
+    
+    # Alertes stock critique
+    stock_critique_alertes = SparePart.objects.filter(quantite__lt=3, actif=True)
+    stock_critique_count = stock_critique_alertes.count()
+    
+    # Réservations récentes non consommées
+    reservations_recentes = StockReservation.objects.filter(
+        est_consommee=False
+    ).select_related('piece', 'ticket', 'utilisateur').order_by('-date_reservation')[:5]
     # --- Calculs pour les variations dynamiques ---
     from datetime import timedelta
     now = timezone.now()
@@ -327,6 +363,10 @@ def dashboard(request):
         'critiques_diff': critiques_diff,
         'notifications_non_lues': notifications_non_lues,
         'notifications_count': notifications_count,
+        'spare_parts': spare_parts,
+        'stock_critique_alertes': stock_critique_alertes,
+        'stock_critique_count': stock_critique_count,
+        'reservations_recentes': reservations_recentes,
     }
     return render(request, 'tickets/dashboard.html', context)
 
@@ -377,7 +417,7 @@ def machine_create(request):
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form = MachineForm(request.POST)
+        form = MachineForm(request.POST, request.FILES)
         if form.is_valid():
             machine = form.save()
             messages.success(request, f"Machine '{machine.nom}' créée.")
@@ -396,7 +436,7 @@ def machine_edit(request, pk):
     
     machine = get_object_or_404(Machine, pk=pk)
     if request.method == 'POST':
-        form = MachineForm(request.POST, instance=machine)
+        form = MachineForm(request.POST, request.FILES, instance=machine)
         if form.is_valid():
             form.save()
             messages.success(request, f"Machine '{machine.nom}' mise à jour.")
@@ -691,6 +731,30 @@ def demande_create(request):
             if not demande.heure_ticket:
                 demande.heure_ticket = timezone.now().time()
             demande.save()
+
+            # Gestion de la réservation de pièce
+            spare_part = form.cleaned_data.get('spare_part')
+            if spare_part:
+                if spare_part.quantite > 0:
+                    # Créer la réservation
+                    StockReservation.objects.create(
+                        piece=spare_part,
+                        ticket=demande,
+                        quantite_reservee=1,
+                        utilisateur=request.user if request.user.is_authenticated else None
+                    )
+                    
+                    # Mettre à jour le stock
+                    spare_part.quantite -= 1
+                    spare_part.save()
+                    
+                    # Alerte stock critique
+                    if spare_part.quantite < 3:
+                        messages.warning(request, f"⚠️ Attention, stock critique pour la pièce '{spare_part.nom}' (stock restant : {spare_part.quantite})")
+                    
+                    messages.success(request, f"✅ Pièce '{spare_part.nom}' réservée avec succès pour ce ticket.")
+                else:
+                    messages.error(request, f"❌ Impossible de réserver la pièce '{spare_part.nom}': stock épuisé.")
             # Historique création
             from .models import TicketHistory
             TicketHistory.objects.create(

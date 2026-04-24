@@ -20,3 +20,8 @@
 =======
 2026-04-23 10:58:25,789 [WARNING] slowrequests: POST /login/ ï¿½ 777.72 ms ï¿½ 9 queries
 >>>>>>> b96901710813715a7902fadf764d8b446fb6be71
+2026-04-24 10:10:29,042 [WARNING] slowrequests: GET /favicon.ico — 318.46 ms — 0 queries
+2026-04-24 10:10:35,600 [WARNING] slowrequests: POST /login/ — 464.73 ms — 11 queries
+2026-04-24 10:24:47,159 [WARNING] slowrequests: POST /login/ — 461.66 ms — 11 queries
+2026-04-24 10:58:57,709 [WARNING] slowrequests: GET /dashboard/ — 223.17 ms — 37 queries
+2026-04-24 11:17:42,247 [WARNING] slowrequests: GET /dashboard/ — 332.51 ms — 35 queries

@@ -7,7 +7,7 @@
     <div class="col-lg-6">
         <div class="form-card">
             <h5 class="mb-4"><i class="bi bi-cpu me-2 text-primary"></i>{{ action }} une machine</h5>
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-12">
@@ -44,6 +44,16 @@
                             <label class="form-label fw-bold">Opérateur associé *</label>
                             {{ form.operator }}
                         </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Manuel d'utilisation (PDF)</label>
+                        {{ form.manuel_pdf }}
+                        <div class="form-text">Vous pouvez joindre un fichier PDF (optionnel).</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Manuel d'utilisation (texte)</label>
+                        {{ form.manuel_texte }}
+                        <div class="form-text">Vous pouvez rédiger un manuel directement ici (optionnel).</div>
+                    </div>
                 </div>
                 <hr class="my-4">
                 <div class="d-flex gap-2">

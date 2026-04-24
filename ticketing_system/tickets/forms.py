@@ -22,12 +22,20 @@ class TicketSupportForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
+    spare_part = forms.ModelChoiceField(
+        queryset=SparePart.objects.filter(actif=True, quantite__gt=0),
+        required=False,
+        label="Réserver une pièce (optionnel)",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
     class Meta:
         model = TicketSupport
         fields = [
             'titre', 'service_support', 'categorie',
             'machine', 'priorite',
-            'delai_souhaite', 'nature_probleme', 'description_probleme'
+            'delai_souhaite', 'nature_probleme', 'description_probleme',
+            'spare_part'
         ]
         widgets = {
             'date_ticket': forms.DateInput(attrs={'type': 'date'}),
@@ -95,10 +103,14 @@ class MachineForm(forms.ModelForm):
 
     class Meta:
         model = Machine
-        fields = ['nom', 'reference', 'localisation', 'description', 'date_installation', 'actif', 'department', 'operator']
+        fields = [
+            'nom', 'reference', 'localisation', 'description', 'date_installation', 'actif', 'department', 'operator',
+            'manuel_pdf', 'manuel_texte'
+        ]
         widgets = {
             'date_installation': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 3}),
+            'manuel_texte': forms.Textarea(attrs={'rows': 3, 'placeholder': "Rédigez ici le manuel d'utilisation si besoin..."}),
         }
 
 
