@@ -3,12 +3,17 @@ from .models_smtp import SMTPSettings
 # Imports principaux
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Q, Count
-from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from django.db.models import Q, Count, Avg, Sum, F
+from django.utils import timezone
+from datetime import datetime, timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Machine, TicketSupport, InterventionTechnique, OperatorProfile, Department
+from django.views.decorators.csrf import csrf_exempt
+from .models import *
 from .forms import UserEditForm, MachineForm, TicketSupportForm, TicketSupportUpdateForm, UserCreationForm, UserUpdateForm, OperatorProfileForm, FiltreTicketSupportForm
 from django.contrib.auth.models import User
 import datetime
@@ -252,6 +257,17 @@ def dashboard(request):
     else:
         avg_resolution_hours = None
 
+    # Récupérer les notifications non lues pour l'utilisateur courant
+    notifications_non_lues = NotificationAlert.objects.filter(
+        destinataire=user,
+        lue=False
+    ).order_by('-date_creation')[:5]
+    
+    notifications_count = NotificationAlert.objects.filter(
+        destinataire=user,
+        lue=False
+    ).count()
+
     context = {
         'total_demandes': total_tickets,
         'demandes_en_attente': tickets_en_attente,
@@ -271,6 +287,8 @@ def dashboard(request):
         'opened_pct': opened_pct,
         'resolved_pct': resolved_pct,
         'critiques_diff': critiques_diff,
+        'notifications_non_lues': notifications_non_lues,
+        'notifications_count': notifications_count,
     }
     return render(request, 'tickets/dashboard.html', context)
 
@@ -975,6 +993,58 @@ def intervention_create_from_ticket(request, ticket_pk):
         return redirect('intervention_detail', pk=intervention.pk)
     return render(request, 'tickets/intervention_form.html', {'form': form, 'action': 'Créer', 'ticket': ticket})
 
+
+@login_required
+def marquer_notification_lue(request, notification_id):
+    """Marquer une notification comme lue via AJAX"""
+    if request.method == 'POST':
+        try:
+            notification = get_object_or_404(NotificationAlert, pk=notification_id, destinataire=request.user)
+            notification.lue = True
+            notification.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Méthode non autorisée'})
+
+
+@login_required
+def check_notifications(request):
+    """Vérifier les nouvelles notifications via AJAX"""
+    if request.method == 'GET':
+        try:
+            # Récupérer les notifications non lues
+            notifications = NotificationAlert.objects.filter(
+                destinataire=request.user,
+                lue=False
+            ).order_by('-date_creation')[:5]
+            
+            notifications_data = []
+            for notif in notifications:
+                notif_data = {
+                    'id': notif.pk,
+                    'titre': notif.titre,
+                    'message': notif.message,
+                    'date_creation': notif.date_creation.strftime('%H:%M'),
+                    'type_notification': notif.type_notification,
+                    'icon': notif.get_type_icon(),
+                    'ticket_url': None
+                }
+                
+                if notif.ticket:
+                    notif_data['ticket_url'] = f"/demandes/{notif.ticket.pk}/"
+                
+                notifications_data.append(notif_data)
+            
+            return JsonResponse({
+                'success': True,
+                'new_notifications': notifications.count(),
+                'notifications': notifications_data
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Méthode non autorisée'})
+
 from django.views.decorators.http import require_GET
 
 @require_GET
@@ -988,4 +1058,32 @@ def get_operators_by_department(request):
         {'id': op.id, 'name': str(op)} for op in operators
     ]
     return JsonResponse({'operators': data})
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def save_theme_preference(request):
+    """Vue pour sauvegarder la préférence de thème de l'utilisateur"""
+    try:
+        import json
+        data = json.loads(request.body)
+        theme = data.get('theme')
+        
+        if theme not in ['light', 'dark']:
+            return JsonResponse({'success': False, 'error': 'Thème invalide'})
+        
+        # Mettre à jour le profil utilisateur
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile.theme_mode = theme
+        profile.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def ticket_list_new(request):
+    """Nouvelle vue pour la liste des tickets avec système de vues multiples"""
+    return render(request, 'tickets/ticket_list_new.html')
 

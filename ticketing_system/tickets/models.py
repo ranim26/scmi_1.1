@@ -9,6 +9,37 @@ from django.dispatch import receiver
 import datetime
 
 
+class UserProfile(models.Model):
+    """Profil utilisateur pour stocker les préférences personnelles"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    theme_mode = models.CharField(
+        max_length=10, 
+        choices=[('light', 'Clair'), ('dark', 'Sombre')],
+        default='light',
+        verbose_name="Mode de thème"
+    )
+    
+    class Meta:
+        verbose_name = "Profil utilisateur"
+        verbose_name_plural = "Profils utilisateurs"
+    
+    def __str__(self):
+        return f"Profil de {self.user.username}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Créer automatiquement un profil utilisateur quand un utilisateur est créé"""
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Sauvegarder le profil utilisateur quand l'utilisateur est sauvegardé"""
+    instance.profile.save()
+
+
 class Machine(models.Model):
     nom = models.CharField(max_length=200, verbose_name="Nom de la machine")
     reference = models.CharField(max_length=100, unique=True, verbose_name="Référence")
@@ -171,6 +202,7 @@ class TicketSupport(models.Model):
         return f"{self.numero_ticket} - {self.machine.nom}"
     
     def save(self, *args, **kwargs):
+        # Signal pour créer une notification d'alerte lors de la création d'un ticket
         # Générer automatiquement le numéro de ticket si non fourni
         if not self.numero_ticket:
             from django.db import transaction
@@ -278,6 +310,80 @@ class InterventionTechnique(models.Model):
 
 
 # Historique des modifications de ticket (à placer à la fin du fichier, niveau racine)
+
+class NotificationAlert(models.Model):
+    """Modèle pour les notifications d'alerte destinées aux admins"""
+    
+    TYPE_CHOICES = [
+        ('nouveau_ticket', 'Nouveau ticket'),
+        ('ticket_critique', 'Ticket critique'),
+        ('machine_inactive', 'Machine inactive'),
+        ('intervention_terminee', 'Intervention terminée'),
+    ]
+    
+    destinataire = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', limit_choices_to={'is_staff': True})
+    type_notification = models.CharField(max_length=30, choices=TYPE_CHOICES, default='nouveau_ticket')
+    titre = models.CharField(max_length=200, verbose_name="Titre de l'alerte")
+    message = models.TextField(verbose_name="Message de l'alerte")
+    ticket = models.ForeignKey('TicketSupport', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    machine = models.ForeignKey('Machine', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    lue = models.BooleanField(default=False, verbose_name="Lue")
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
+    
+    class Meta:
+        verbose_name = "Notification d'alerte"
+        verbose_name_plural = "Notifications d'alerte"
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"{self.titre} - {self.destinataire.username}"
+    
+    def get_type_icon(self):
+        icons = {
+            'nouveau_ticket': 'bi-exclamation-triangle-fill text-warning',
+            'ticket_critique': 'bi-exclamation-octagon-fill text-danger',
+            'machine_inactive': 'bi-x-circle-fill text-danger',
+            'intervention_terminee': 'bi-check-circle-fill text-success',
+        }
+        return icons.get(self.type_notification, 'bi-info-circle-fill text-info')
+
+
+# Signal pour créer une notification d'alerte lors de la création d'un ticket
+@receiver(post_save, sender=TicketSupport)
+def creer_notification_ticket(sender, instance, created, **kwargs):
+    if created:
+        # Récupérer tous les admins et superviseurs
+        from django.contrib.auth.models import User
+        admins_supervisors = User.objects.filter(
+            models.Q(is_staff=True) | 
+            models.Q(operatorprofile__role='superviseur')
+        ).distinct()
+        
+        # Déterminer le type de notification
+        type_notif = 'ticket_critique' if instance.priorite == 'haute' else 'nouveau_ticket'
+        
+        # Créer le titre et message
+        titre = f"🚨 Nouveau ticket {instance.numero_ticket}"
+        if instance.priorite == 'haute':
+            titre = f"⚠️ Ticket CRITIQUE {instance.numero_ticket}"
+        
+        message = f"Un nouveau ticket a été créé par {instance.demandeur}:\n"
+        message += f"• Machine: {instance.machine.nom}\n"
+        message += f"• Problème: {instance.description_probleme[:100]}{'...' if len(instance.description_probleme) > 100 else ''}\n"
+        message += f"• Priorité: {instance.get_priorite_display()}\n"
+        message += f"• Date: {instance.date_ticket}"
+        
+        # Créer les notifications pour chaque admin/superviseur
+        for admin_user in admins_supervisors:
+            NotificationAlert.objects.create(
+                destinataire=admin_user,
+                type_notification=type_notif,
+                titre=titre,
+                message=message,
+                ticket=instance,
+                machine=instance.machine
+            )
+
 
 class TicketHistory(models.Model):
     ticket = models.ForeignKey('TicketSupport', on_delete=models.CASCADE, related_name='histories')

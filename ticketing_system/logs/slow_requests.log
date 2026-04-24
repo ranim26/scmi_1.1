@@ -146,3 +146,8 @@
 2026-04-21 11:02:26,247 [WARNING] slowrequests: POST /login/ — 455.56 ms — 9 queries
 2026-04-21 11:14:15,368 [WARNING] slowrequests: POST /demandes/nouvelle/ — 7109.01 ms — 15 queries
 2026-04-23 10:58:25,789 [WARNING] slowrequests: POST /login/ — 777.72 ms — 9 queries
+2026-04-23 11:10:40,193 [WARNING] slowrequests: GET /admin/auth/user/add/ — 217.83 ms — 7 queries
+2026-04-23 11:21:44,220 [WARNING] slowrequests: GET /dashboard/ — 314.74 ms — 78 queries
+2026-04-23 11:25:56,139 [WARNING] slowrequests: POST /demandes/nouvelle/ — 7355.58 ms — 22 queries
+2026-04-23 14:16:10,419 [WARNING] slowrequests: GET /tickets/ — 204.18 ms — 52 queries
+2026-04-23 14:18:19,988 [WARNING] slowrequests: GET /tickets/ — 225.18 ms — 64 queries
