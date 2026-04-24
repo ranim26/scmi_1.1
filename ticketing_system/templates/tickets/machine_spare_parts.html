@@ -1,0 +1,26 @@
+{% extends 'tickets/base.html' %}
+{% block content %}
+<h1>Pièces de rechange par machine</h1>
+<div>
+  {% for machine in machines %}
+    <div style="margin-bottom:2em;">
+      <h3>{{ machine.nom }} ({{ machine.reference }})</h3>
+      {% if machine.spare_parts.all %}
+        <ul>
+          {% for part in machine.spare_parts.all %}
+            <li>
+              <strong>{{ part.nom }}</strong> ({{ part.reference }}) - {{ part.description }}
+              <span>Quantité: {{ part.quantite }}</span>
+              {% if not part.actif %}<span style="color:red;">(Inactif)</span>{% endif %}
+            </li>
+          {% empty %}
+            <li>Aucune pièce de rechange associée.</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Aucune pièce de rechange associée.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -78,6 +78,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="false">Détails</button>
             </li>
+            
         </ul>
         <div class="tab-content mt-3" id="machineDetailsTabContent">
             <!-- Onglet Vue d'ensemble (Dashboard) -->
@@ -203,6 +204,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Récupération des données dynamiques depuis Django
         var tempLabels = {{ labels_24h|safe }};
+                            </div>
         var tempData = {{ temperature_24h|safe }};
         var vibLabels = {{ labels_24h|safe }};
         var vibData = {{ vibration_24h|safe }};
