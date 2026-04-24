@@ -11,6 +11,49 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write('Création des données de démonstration...')
 
+        # --- AJOUT FINAL : Créer et associer les pièces de rechange ---
+        from tickets.models import SparePart
+        spare_parts_data = [
+            ("Carte mère CNC", "SP-001", "Carte mère pour tour CNC Alpha", 5),
+            ("Variateur ABB", "SP-002", "Variateur de vitesse pour fraiseuse Beta-5", 2),
+            ("Courroie convoyeur", "SP-003", "Courroie pour convoyeur principal", 10),
+            ("Capteur fin de course", "SP-004", "Capteur pour presse hydraulique", 1),
+            ("Filtre chiller", "SP-005", "Filtre pour chiller refroidissement", 4),
+        ]
+        spare_parts_objs = {}
+        for nom, ref, desc, qty in spare_parts_data:
+            part, _ = SparePart.objects.get_or_create(
+                reference=ref,
+                defaults={
+                    'nom': nom,
+                    'description': desc,
+                    'quantite': qty,
+                    'actif': True
+                }
+            )
+            spare_parts_objs[ref] = part
+
+        machine_part_map = {
+            'TRN-001': ['SP-001'],  # Tour CNC Alpha -> Carte mère CNC
+            'FRS-002': ['SP-002'],  # Fraiseuse Beta-5 -> Variateur ABB
+            'CNV-005': ['SP-003'],  # Convoyeur Principal -> Courroie convoyeur
+            'PRS-006': ['SP-004'],  # Presse Hydraulique 200T -> Capteur fin de course
+            'CHI-008': ['SP-005'],  # Chiller Refroidissement -> Filtre chiller
+        }
+        for machine_ref, part_refs in machine_part_map.items():
+            try:
+                machine = Machine.objects.get(reference=machine_ref)
+                for part_ref in part_refs:
+                    part = spare_parts_objs.get(part_ref)
+                    if part:
+                        part.machines.add(machine)
+            except Machine.DoesNotExist:
+                pass
+    help = 'Charge des données de démonstration'
+
+    def handle(self, *args, **kwargs):
+        self.stdout.write('Création des données de démonstration...')
+
         # Créer des utilisateurs techniciens
         techniciens = []
         for username, first, last in [

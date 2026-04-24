@@ -46,4 +46,6 @@ urlpatterns = [
     # Historique des tickets
     path('tickets/historique/', ticket_history_list, name='ticket_history_list'),
     path('spare-parts/ajouter/', views.add_spare_part, name='add_spare_part'),
+    # Gestion des réservations de stock
+    path('stock/reservation/<int:reservation_id>/<str:action>/', views.manage_stock_reservation, name='manage_stock_reservation'),
 ]

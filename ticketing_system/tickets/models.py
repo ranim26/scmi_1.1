@@ -209,6 +209,10 @@ class TicketSupport(models.Model):
     visa_demandeur = models.CharField(max_length=200, blank=True, verbose_name="Visa du demandeur")
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente', verbose_name="Statut")
     
+    # Pièce détachée réservée
+    spare_part = models.ForeignKey(SparePart, on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='tickets', verbose_name="Pièce détachée réservée")
+    
     # Métadonnées
     date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
     date_modification = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
@@ -403,6 +407,40 @@ def creer_notification_ticket(sender, instance, created, **kwargs):
                 ticket=instance,
                 machine=instance.machine
             )
+
+
+class StockReservation(models.Model):
+    """Modèle pour suivre les réservations de pièces détachées"""
+    piece = models.ForeignKey(SparePart, on_delete=models.CASCADE, related_name='reservations')
+    ticket = models.ForeignKey(TicketSupport, on_delete=models.CASCADE, related_name='stock_reservations')
+    quantite_reservee = models.PositiveIntegerField(default=1, verbose_name="Quantité réservée")
+    date_reservation = models.DateTimeField(auto_now_add=True, verbose_name="Date de réservation")
+    utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Utilisateur")
+    est_consommee = models.BooleanField(default=False, verbose_name="Consommée")
+    date_consommation = models.DateTimeField(null=True, blank=True, verbose_name="Date de consommation")
+    
+    class Meta:
+        verbose_name = "Réservation de stock"
+        verbose_name_plural = "Réservations de stock"
+        ordering = ['-date_reservation']
+        unique_together = ['piece', 'ticket']  # Une pièce par ticket maximum
+    
+    def __str__(self):
+        return f"{self.quantite_reservee}x {self.piece.nom} pour {self.ticket.numero_ticket}"
+    
+    def consommer(self):
+        """Marquer la réservation comme consommée"""
+        if not self.est_consommee:
+            self.est_consommee = True
+            self.date_consommation = timezone.now()
+            self.save()
+    
+    def annuler(self):
+        """Annuler la réservation et restituer le stock"""
+        if not self.est_consommee:
+            self.piece.quantite += self.quantite_reservee
+            self.piece.save()
+            self.delete()
 
 
 class TicketHistory(models.Model):

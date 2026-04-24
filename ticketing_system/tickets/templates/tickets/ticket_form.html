@@ -45,6 +45,16 @@
                         {{ form.machine.errors }}
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label fw-bold">Réserver une pièce (optionnel)</label>
+                        {{ form.spare_part }}
+                        {{ form.spare_part.errors }}
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Sélectionnez une pièce à réserver pour cette intervention. 
+                            Le stock sera déduit automatiquement.
+                        </small>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label fw-bold">Nature de l'anomalie *</label>
                         {{ form.nature_anomalie }}
                         {{ form.nature_anomalie.errors }}
@@ -117,4 +127,5 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCodeMachine();
     }
 });
+</script>
 {% endblock %}
