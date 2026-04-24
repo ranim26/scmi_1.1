@@ -1162,7 +1162,7 @@ def get_operators_by_department(request):
     return JsonResponse({'operators': data})
 
 
-@csrf_exempt
+
 @require_POST
 @login_required
 def save_theme_preference(request):
