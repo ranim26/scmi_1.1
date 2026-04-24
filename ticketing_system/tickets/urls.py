@@ -36,6 +36,13 @@ urlpatterns = [
     path('interventions/from-ticket/<int:ticket_pk>/', views.intervention_create_from_ticket, name='intervention_create_from_ticket'),
     # AJAX endpoint for operator filtering by department
     path('ajax/get-operators/', views.get_operators_by_department, name='get_operators_by_department'),
+    # Notifications
+    path('notification/<int:notification_id>/lire/', views.marquer_notification_lue, name='marquer_notification_lue'),
+    path('check-notifications/', views.check_notifications, name='check_notifications'),
+    # Thème
+    path('save-theme/', views.save_theme_preference, name='save_theme_preference'),
+    # Nouvelle vue des tickets
+    path('tickets-new/', views.ticket_list_new, name='ticket_list_new'),
     # Historique des tickets
     path('tickets/historique/', ticket_history_list, name='ticket_history_list'),
     path('spare-parts/ajouter/', views.add_spare_part, name='add_spare_part'),

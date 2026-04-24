@@ -29,7 +29,7 @@ MIDDLEWARE = [
     'tickets.middleware.SlowRequestMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # Désactivé pour développement avec preview browser
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -94,6 +94,8 @@ LOGOUT_REDIRECT_URL = '/login/'
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:51707",
     "http://localhost:51707",
+    "http://127.0.0.1:61112",
+    "http://localhost:61112",
 ]
 
 # Désactiver CSRF pour les requises depuis le preview browser en développement
@@ -102,6 +104,8 @@ if DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         "http://127.0.0.1:51707",
         "http://localhost:51707",
+        "http://127.0.0.1:61112",
+        "http://localhost:61112",
     ]
 
 # Logging pour requêtes lentes
