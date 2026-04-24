@@ -1187,5 +1187,148 @@ def save_theme_preference(request):
 @login_required
 def ticket_list_new(request):
     """Nouvelle vue pour la liste des tickets avec système de vues multiples"""
-    return render(request, 'tickets/ticket_list_new.html')
+    # Récupérer les vrais tickets de la base de données
+    user = request.user
+    if is_admin_or_supervisor(user):
+        tickets_qs = TicketSupport.objects.all().select_related('machine').order_by('-date_creation')
+    else:
+        profile = getattr(user, 'operatorprofile', None)
+        if not profile:
+            messages.error(request, "Aucun profil opérateur trouvé.")
+            return redirect('dashboard')
+        tickets_qs = TicketSupport.objects.filter(machine__in=profile.machines.all()).select_related('machine').order_by('-date_creation')
+    
+    # Préparer les données pour JavaScript
+    import json
+    tickets_data = []
+    for ticket in tickets_qs:
+        tickets_data.append({
+            'id': ticket.pk,
+            'title': ticket.titre,
+            'demander': ticket.demandeur,
+            'service': ticket.service_support or 'informatique',
+            'machine': ticket.machine.nom if ticket.machine else 'N/A',
+            'status': ticket.get_statut_display(),
+            'priority': ticket.get_priorite_display(),
+            'date': ticket.date_creation.strftime('%d/%m/%Y'),
+            'description': ticket.description_probleme or ''
+        })
+    
+    return render(request, 'tickets/ticket_list_new.html', {
+        'tickets_data': tickets_qs,
+        'tickets_data_json': json.dumps(tickets_data)
+    })
+
+
+# ============ Génération PDF ============
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.units import inch
+from reportlab.lib.colors import HexColor
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from django.http import HttpResponse
+import io
+
+@login_required
+def ticket_pdf(request, pk):
+    """Générer un PDF pour un ticket spécifique"""
+    ticket = get_object_or_404(TicketSupport, pk=pk)
+    
+    # Créer un buffer pour le PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    
+    # Contenu du PDF
+    story = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    heading_style = styles['Heading1']
+    normal_style = styles['Normal']
+    
+    # Titre
+    story.append(Paragraph(f"TICKET DE SUPPORT #{ticket.pk}", title_style))
+    story.append(Spacer(1, 12))
+    
+    # Informations principales
+    data = [
+        ['Statut', ticket.get_statut_display()],
+        ['Priorité', ticket.get_priorite_display()],
+        ['Catégorie', ticket.get_categorie_display()],
+        ['Date de création', ticket.date_creation.strftime('%d/%m/%Y %H:%M')],
+        ['Demandeur', ticket.demandeur],
+    ]
+    
+    if ticket.machine:
+        data.extend([
+            ['Machine', f"{ticket.machine.nom} ({ticket.machine.reference})"],
+            ['Localisation', ticket.machine.localisation],
+        ])
+    
+    # Créer le tableau
+    table = Table(data, colWidths=[2*inch, 4*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    story.append(table)
+    story.append(Spacer(1, 20))
+    
+    # Titre et description
+    story.append(Paragraph("Titre:", heading_style))
+    story.append(Paragraph(ticket.titre, normal_style))
+    story.append(Spacer(1, 12))
+    
+    story.append(Paragraph("Description du problème:", heading_style))
+    story.append(Paragraph(ticket.description_probleme or "N/A", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Informations supplémentaires
+    story.append(Paragraph("Nature du problème:", heading_style))
+    story.append(Paragraph(ticket.get_nature_probleme_display(), normal_style))
+    story.append(Spacer(1, 12))
+    
+    story.append(Paragraph("Type de support:", heading_style))
+    type_support_text = "Préventive" if ticket.type_support else "Curative"
+    story.append(Paragraph(type_support_text, normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Service support
+    story.append(Paragraph("Service support:", heading_style))
+    story.append(Paragraph(ticket.service_support, normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Pièce détachée réservée si disponible
+    if ticket.spare_part:
+        story.append(Paragraph("Pièce détachée réservée:", heading_style))
+        story.append(Paragraph(f"{ticket.spare_part.nom} ({ticket.spare_part.reference})", normal_style))
+        story.append(Spacer(1, 12))
+    
+    # Délai souhaité si disponible
+    if ticket.delai_souhaite:
+        story.append(Paragraph("Délai souhaité:", heading_style))
+        story.append(Paragraph(ticket.delai_souhaite.strftime('%d/%m/%Y'), normal_style))
+        story.append(Spacer(1, 12))
+    
+    # Générer le PDF
+    doc.build(story)
+    
+    # Préparer la réponse HTTP
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename=ticket_{ticket.pk}.pdf'
+    
+    return response
 

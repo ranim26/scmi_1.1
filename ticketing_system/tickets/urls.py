@@ -43,6 +43,8 @@ urlpatterns = [
     path('save-theme/', views.save_theme_preference, name='save_theme_preference'),
     # Nouvelle vue des tickets
     path('tickets-new/', views.ticket_list_new, name='ticket_list_new'),
+    # PDF des tickets
+    path('tickets/<int:pk>/pdf/', views.ticket_pdf, name='ticket_pdf'),
     # Historique des tickets
     path('tickets/historique/', ticket_history_list, name='ticket_history_list'),
     path('spare-parts/ajouter/', views.add_spare_part, name='add_spare_part'),

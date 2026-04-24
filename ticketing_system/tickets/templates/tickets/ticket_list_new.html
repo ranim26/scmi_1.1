@@ -247,15 +247,8 @@
 </style>
 
 <script>
-// Données exemples (à remplacer par appel API)
-const ticketsData = [
-    { id: 'T0020', title: 'Problème imprimante', demander: 'admin', service: 'informatique', machine: 'Générateur Backup', status: 'En attente', priority: 'Haute', date: '23/04/2026', description: "L'imprimante ne répond plus" },
-    { id: 'T0019', title: 'Sans titre', demander: 'admin', service: 'informatique', machine: 'machine', status: 'En attente', priority: 'Moyenne', date: '21/04/2026', description: 'Description du problème' },
-    { id: 'T0018', title: 'test mail', demander: 'admin', service: 'engineer', machine: 'engineer', status: 'Validée', priority: 'Basse', date: '20/04/2026', description: 'Test envoi mail' },
-    { id: 'T0017', title: 'test details', demander: 'admin', service: 'informatique', machine: 'Fraiseuse Beta-5', status: 'Terminée', priority: 'Moyenne', date: '20/04/2026', description: 'Test affichage détails' },
-    { id: 'T0016', title: 'test details', demander: 'admin', service: 'informatique', machine: 'Robot Soudage R1', status: 'En cours', priority: 'Haute', date: '20/04/2026', description: 'Autre test' },
-    { id: 'T0015', title: 'test nom demandeur', demander: 'admin', service: 'informatique', machine: 'Robot', status: 'En attente', priority: 'Basse', date: '20/04/2026', description: 'Test affichage nom' },
-];
+// Données des tickets depuis Django
+const ticketsData = {{ tickets_data_json|safe }};
 
 // État actuel
 let currentView = 'cards';
@@ -407,6 +400,9 @@ function renderCardsView(tickets) {
                                 <button class="btn btn-outline-primary" onclick="viewTicket('${ticket.id}')">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                                <button class="btn btn-outline-danger" onclick="printTicketPDF('${ticket.id}')">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </button>
                                 <button class="btn btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -455,6 +451,9 @@ function renderListView(tickets) {
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewTicket('${ticket.id}')">
                                     <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="printTicketPDF('${ticket.id}')">
+                                    <i class="bi bi-file-earmark-pdf"></i>
                                 </button>
                                 <button class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
@@ -640,6 +639,12 @@ function updateTicketStatus(ticketId, newStatus) {
         // Ici, vous feriez un appel API pour sauvegarder en base de données
         console.log(`Ticket ${ticketId} déplacé vers: ${newStatus}`);
     }
+}
+
+// Imprimer un ticket en PDF
+function printTicketPDF(ticketId) {
+    const url = `/tickets/${ticketId}/pdf/`;
+    window.open(url, '_blank');
 }
 </script>
 {% endblock %}

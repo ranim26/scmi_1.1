@@ -192,6 +192,9 @@
             <a href="{% url 'ticket_edit' ticket.pk %}" class="btn btn-outline-primary">
                 <i class="bi bi-pencil me-2"></i>Modifier le ticket
             </a>
+            <a href="{% url 'ticket_pdf' ticket.pk %}" class="btn btn-danger" target="_blank">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Imprimer PDF
+            </a>
             <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Retour à la liste
             </a>

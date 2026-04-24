@@ -4,5 +4,6 @@ Django==4.2.30
 django-crispy-forms==2.1
 pillow==12.2.0
 python-dotenv==1.0.0
+reportlab==4.0.4
 sqlparse==0.5.5
 tzdata==2026.1
