@@ -103,10 +103,14 @@ class MachineForm(forms.ModelForm):
 
     class Meta:
         model = Machine
-        fields = ['nom', 'reference', 'localisation', 'description', 'date_installation', 'actif', 'department', 'operator']
+        fields = [
+            'nom', 'reference', 'localisation', 'description', 'date_installation', 'actif', 'department', 'operator',
+            'manuel_pdf', 'manuel_texte'
+        ]
         widgets = {
             'date_installation': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 3}),
+            'manuel_texte': forms.Textarea(attrs={'rows': 3, 'placeholder': "Rédigez ici le manuel d'utilisation si besoin..."}),
         }
 
 

@@ -417,7 +417,7 @@ def machine_create(request):
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form = MachineForm(request.POST)
+        form = MachineForm(request.POST, request.FILES)
         if form.is_valid():
             machine = form.save()
             messages.success(request, f"Machine '{machine.nom}' créée.")
@@ -436,7 +436,7 @@ def machine_edit(request, pk):
     
     machine = get_object_or_404(Machine, pk=pk)
     if request.method == 'POST':
-        form = MachineForm(request.POST, instance=machine)
+        form = MachineForm(request.POST, request.FILES, instance=machine)
         if form.is_valid():
             form.save()
             messages.success(request, f"Machine '{machine.nom}' mise à jour.")

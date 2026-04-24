@@ -69,6 +69,8 @@ class Machine(models.Model):
     date_installation = models.DateField(null=True, blank=True, verbose_name="Date d'installation")
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Département associé")
     operator = models.ForeignKey('OperatorProfile', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Opérateur assigné")
+    manuel_pdf = models.FileField(upload_to='machines/manuals/', blank=True, null=True, verbose_name="Manuel d'utilisation (PDF)")
+    manuel_texte = models.TextField(blank=True, null=True, verbose_name="Manuel d'utilisation (texte)")
 
     class Meta:
         verbose_name = "Machine"
