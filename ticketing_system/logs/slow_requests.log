@@ -58,3 +58,4 @@
 2026-04-28 12:11:13,031 [WARNING] slowrequests: POST /login/ — 462.45 ms — 11 queries
 2026-04-28 12:12:19,593 [WARNING] slowrequests: POST /login/ — 448.47 ms — 10 queries
 2026-04-28 12:13:08,873 [WARNING] slowrequests: POST /demandes/nouvelle/ — 4186.16 ms — 22 queries
+2026-04-28 13:39:08,344 [WARNING] slowrequests: POST /login/ — 450.47 ms — 11 queries

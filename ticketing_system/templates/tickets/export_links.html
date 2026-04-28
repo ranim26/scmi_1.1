@@ -1,0 +1,8 @@
+{% extends 'tickets/base.html' %}
+{% block content %}
+<h1>Exportation Excel</h1>
+<p>
+  <a href="{% url 'export_spare_parts_excel' %}" class="btn btn-success">Exporter les pièces de rechange (Excel)</a>
+  <a href="{% url 'export_tickets_excel' %}" class="btn btn-success">Exporter les tickets (Excel)</a>
+</p>
+{% endblock %}

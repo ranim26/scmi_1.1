@@ -13,7 +13,62 @@ from .forms import SparePartForm
 from django.contrib.auth.decorators import login_required
 import requests
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+import openpyxl
+# --- Export Excel Pièces de rechange ---
+@login_required
+def export_spare_parts_excel(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Pièces de rechange"
+    headers = ["Nom", "Référence", "Description", "Quantité", "Active", "Machines concernées"]
+    ws.append(headers)
+    for part in SparePart.objects.prefetch_related('machines').all():
+        machines = ", ".join([m.nom for m in part.machines.all()])
+        ws.append([
+            part.nom,
+            part.reference,
+            part.description,
+            part.quantite,
+            "Oui" if part.actif else "Non",
+            machines
+        ])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="pieces_de_rechange.xlsx"'
+    wb.save(response)
+    return response
+
+# --- Export Excel Tickets ---
+@login_required
+def export_tickets_excel(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Tickets"
+    headers = [
+        "N° Ticket", "Titre", "Service", "Demandeur", "Machine", "Code machine", "Date", "Heure", "Délai souhaité", "Type", "Nature", "Statut", "Pièce réservée", "Description"
+    ]
+    ws.append(headers)
+    for t in TicketSupport.objects.select_related('machine', 'spare_part').all():
+        ws.append([
+            t.numero_ticket,
+            getattr(t, 'titre', ''),
+            t.service_support,
+            t.demandeur,
+            t.machine.nom if t.machine else '',
+            t.code_machine,
+            t.date_ticket.strftime('%d/%m/%Y') if t.date_ticket else '',
+            t.heure_ticket.strftime('%H:%M') if t.heure_ticket else '',
+            t.delai_souhaite.strftime('%d/%m/%Y') if t.delai_souhaite else '',
+            "Préventive" if getattr(t, 'type_support', False) else "Curative",
+            t.nature_probleme,
+            t.statut,
+            t.spare_part.nom if t.spare_part else '',
+            t.description_probleme,
+        ])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="tickets.xlsx"'
+    wb.save(response)
+    return response
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 

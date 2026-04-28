@@ -4,6 +4,8 @@ from .views import check_notifications
 from .views_ticket_history import ticket_history_list
 
 urlpatterns = [
+    path('export/spare-parts/', views.export_spare_parts_excel, name='export_spare_parts_excel'),
+    path('export/tickets/', views.export_tickets_excel, name='export_tickets_excel'),
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('machines/spare-parts/', views.machine_spare_parts_view, name='machine_spare_parts'),

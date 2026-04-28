@@ -1,6 +1,13 @@
 {% extends 'tickets/base.html' %}
 {% block content %}
-<h1>Pièces de rechange par machine</h1>
+<div style="background: #ff0; color: #000; font-size: 2em; text-align: center;">TEST BOUTON</div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5em;">
+  <h1 style="margin: 0;">Pièces de rechange par machine</h1>
+  <div>
+    <a href="{% url 'export_spare_parts_excel' %}" class="btn btn-success" style="margin-right: 0.5em;">Exporter Excel</a>
+    <a href="{% url 'add_spare_part' %}" class="btn btn-primary">+ Ajouter une pièce de rechange</a>
+  </div>
+</div>
 <div>
   {% for machine in machines %}
     <div style="margin-bottom:2em;">
