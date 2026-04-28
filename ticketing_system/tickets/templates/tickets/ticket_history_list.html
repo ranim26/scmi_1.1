@@ -1,35 +1,70 @@
 {% extends 'tickets/base.html' %}
 {% block content %}
-<h2>Historique des tickets</h2>
-
-<form method="get" class="mb-3" autocomplete="off">
-    <div class="input-group">
-        <input type="text" name="q" class="form-control" placeholder="Rechercher..." value="{{ query|default:'' }}">
-        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Rechercher</button>
-    </div>
-</form>
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Utilisateur</th>
-            <th>Action</th>
-            <th>Détails</th>
-            <th>Ticket</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for h in histories %}
-        <tr>
-            <td>{{ h.date|date:'d/m/Y H:i' }}</td>
-            <td>{{ h.user }}</td>
-            <td>{{ h.action }}</td>
-            <td>{{ h.details }}</td>
-            <td>{{ h.ticket }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5">Aucun historique trouvé.</td></tr>
+<link rel="stylesheet" href="/static/css/ticket_history.css">
+<div class="ticket-history-container">
+    <h2 style="margin-bottom: 24px;">Historique des tickets</h2>
+    <form method="get" class="mb-3" autocomplete="off">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Rechercher..." value="{{ query|default:'' }}">
+            <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Rechercher</button>
+        </div>
+    </form>
+    <table class="ticket-history-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Utilisateur</th>
+                <th>Action</th>
+                <th>Détails</th>
+                <th>Ticket</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in histories %}
+            <tr>
+                <td>
+                    <div style="font-weight:600;">{{ h.date|date:'d/m/Y' }}</div>
+                    <div style="font-size:0.95em;color:#bdbdbd;">{{ h.date|date:'H:i' }}</div>
+                </td>
+                <td>
+                    <span class="badge badge-user">{{ h.user|slice:':1'|upper }}</span>
+                    <span style="margin-left:8px;">{{ h.user }}</span>
+                </td>
+                <td>
+                    {% if 'Création' in h.action %}
+                        <span class="badge badge-action">{{ h.action }}</span>
+                    {% elif 'Changement' in h.action %}
+                        <span class="badge badge-status">{{ h.action }}</span>
+                    {% else %}
+                        <span class="badge">{{ h.action }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ h.details }}</td>
+                <td>
+                    <span class="badge badge-ticket">{{ h.ticket }}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Aucun historique trouvé.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if page_obj %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">&lt;</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="page-link active">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a>
+            {% endif %}
         {% endfor %}
-    </tbody>
-</table>
+        {% if page_obj.has_next %}
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">&gt;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
