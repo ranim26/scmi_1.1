@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import check_notifications
 from .views_ticket_history import ticket_history_list
 
 urlpatterns = [
