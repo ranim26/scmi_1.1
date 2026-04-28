@@ -59,3 +59,7 @@
 2026-04-28 12:12:19,593 [WARNING] slowrequests: POST /login/ — 448.47 ms — 10 queries
 2026-04-28 12:13:08,873 [WARNING] slowrequests: POST /demandes/nouvelle/ — 4186.16 ms — 22 queries
 2026-04-28 13:39:08,344 [WARNING] slowrequests: POST /login/ — 450.47 ms — 11 queries
+2026-04-28 14:37:29,634 [WARNING] slowrequests: GET /demandes/dashboard/ — 209.34 ms — 50 queries
+2026-04-28 14:47:48,758 [WARNING] slowrequests: GET /demandes/dashboard/ — 227.11 ms — 50 queries
+2026-04-28 15:10:26,195 [WARNING] slowrequests: GET /demandes/dashboard/ — 231.24 ms — 80 queries
+2026-04-28 15:11:38,287 [WARNING] slowrequests: GET /demandes/dashboard/ — 233.29 ms — 86 queries

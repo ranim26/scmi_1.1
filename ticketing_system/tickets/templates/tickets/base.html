@@ -1593,9 +1593,7 @@
         <a href="{% url 'demande_dashboard' %}" class="nav-link {% if 'demande' in request.resolver_match.url_name %}active{% endif %}">
             <i class="bi bi-clipboard-check"></i><span>Tickets de support</span>
         </a>
-        <a href="{% url 'ticket_list_new' %}" class="nav-link {% if request.resolver_match.url_name == 'ticket_list_new' %}active{% endif %}">
-            <i class="bi bi-ticket-detailed"></i><span>Liste des tickets</span>
-        </a>
+        
 
             <a href="{% url 'ticket_history_list' %}" class="nav-link {% if request.resolver_match.url_name == 'ticket_history_list' %}active{% endif %}">
                 <i class="bi bi-clock-history"></i><span>Historique des tickets</span>

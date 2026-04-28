@@ -1,4 +1,5 @@
 {% extends 'tickets/base.html' %}
+{% load static %}
 
 {% block title %}Dashboard Tickets de support{% endblock %}
 
@@ -65,7 +66,22 @@
         </div>
         <div class="d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Vue d'ensemble des tickets</h4>
+            <!-- Boutons de vue -->
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="btn-cards" onclick="changeView('cards')">
+                                    <i class="bi bi-grid-3x3-gap"></i> Cartes
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-list" onclick="changeView('list')">
+                                    <i class="bi bi-list-ul"></i> Liste
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-kanban" onclick="changeView('kanban')">
+                                    <i class="bi bi-kanban"></i> Kanban
+                                </button>
+                            </div>
+                        </div>
         </div>
+        
         <form method="get" class="my-3">
             <div class="input-group">
                 <input type="text" name="search" class="form-control" placeholder="Rechercher un ticket..." value="{{ request.GET.search }}">
@@ -131,6 +147,56 @@
 .ticket-eye:hover {
     color: #0056b3;
 }
+/* Kanban only styles below */
+.kanban-column {
+    min-height: 400px;
+}
+.kanban-card {
+    cursor: pointer;
+    transition: transform 0.2s;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.10);
+}
+.priority-haute {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-size: 0.85rem;
+}
+.priority-moyenne {
+    background-color: #ffc107;
+    color: black;
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-size: 0.85rem;
+}
+.priority-basse {
+    background-color: #198754;
+    color: white;
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-size: 0.85rem;
+}
+.kanban-card .ticket-title {
+    font-weight: 600;
+    color: #1a2332;
+    font-size: 1.05rem;
+}
+.kanban-card .text-muted {
+    font-size: 0.95rem;
+}
+.kanban-card .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
 </style>
 
 <div class="ticket-grid">
@@ -138,7 +204,10 @@
     <div class="ticket-card">
         <div class="ticket-header">
             <span class="ticket-title">#{{ demande.numero_ticket }} - {{ demande.titre|default:demande.numero_ticket }}</span>
-            <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+            <span>
+                <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            </span>
         </div>
         <div class="ticket-info">
             <div><strong>Demandeur :</strong> {{ demande.demandeur|default:"-" }}</div>
@@ -163,4 +232,169 @@
     <div class="col-12 text-center text-muted">Aucun ticket récent</div>
     {% endfor %}
 </div>
+
+<!-- Liste View (hidden by default) -->
+<div id="ticket-list-view" style="display:none;">
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Titre</th>
+                    <th>Demandeur</th>
+                    <th>Service</th>
+                    <th>Machine</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for demande in demandes_recentes %}
+                <tr>
+                    <td>{{ demande.numero_ticket }}</td>
+                    <td>{{ demande.titre|default:demande.numero_ticket }}</td>
+                    <td>{{ demande.demandeur|default:"-" }}</td>
+                    <td>{{ demande.service_support }}</td>
+                    <td>{{ demande.machine.nom }}</td>
+                    <td><span class="ticket-status bg-{{ demande.get_statut_class }}">{{ demande.get_statut_display }}</span></td>
+                    <td>{{ demande.date_creation|date:"d/m/Y" }}</td>
+                    <td>
+                        <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                        <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted">Aucun ticket récent</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Kanban View (hidden by default) -->
+<div id="ticket-kanban-view" style="display:none;">
+    <div class="row g-3">
+        <div class="col-md-3 col-sm-6">
+            <div class="card kanban-column h-100">
+                <div class="card-header fw-bold text-center bg-warning text-white">
+                    En attente
+                </div>
+                <div class="card-body" style="min-height: 400px;">
+                    {% for demande in demandes_recentes %}
+                        {% if demande.statut == 'en_attente' %}
+                        <div class="kanban-card p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">#{{ demande.numero_ticket }}</small>
+                                {% if demande.priorite %}
+                                <span class="priority-{{ demande.priorite|lower }}">{{ demande.priorite }}</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="ticket-title mt-2 mb-1">{{ demande.titre|default:demande.numero_ticket }}</h6>
+                            <small class="text-muted d-block"><i class="bi bi-person"></i> {{ demande.demandeur|default:"-" }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-folder"></i> {{ demande.service_support }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-pc-display"></i> {{ demande.machine.nom }}</small>
+                            <span>
+                                <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card kanban-column h-100">
+                <div class="card-header fw-bold text-center bg-info text-white">
+                    En cours
+                </div>
+                <div class="card-body" style="min-height: 400px;">
+                    {% for demande in demandes_recentes %}
+                        {% if demande.statut == 'en_cours' %}
+                        <div class="kanban-card p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">#{{ demande.numero_ticket }}</small>
+                                {% if demande.priorite %}
+                                <span class="priority-{{ demande.priorite|lower }}">{{ demande.priorite }}</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="ticket-title mt-2 mb-1">{{ demande.titre|default:demande.numero_ticket }}</h6>
+                            <small class="text-muted d-block"><i class="bi bi-person"></i> {{ demande.demandeur|default:"-" }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-folder"></i> {{ demande.service_support }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-pc-display"></i> {{ demande.machine.nom }}</small>
+                            <span>
+                                <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card kanban-column h-100">
+                <div class="card-header fw-bold text-center bg-success text-white">
+                    Validée
+                </div>
+                <div class="card-body" style="min-height: 400px;">
+                    {% for demande in demandes_recentes %}
+                        {% if demande.statut == 'validee' %}
+                        <div class="kanban-card p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">#{{ demande.numero_ticket }}</small>
+                                {% if demande.priorite %}
+                                <span class="priority-{{ demande.priorite|lower }}">{{ demande.priorite }}</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="ticket-title mt-2 mb-1">{{ demande.titre|default:demande.numero_ticket }}</h6>
+                            <small class="text-muted d-block"><i class="bi bi-person"></i> {{ demande.demandeur|default:"-" }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-folder"></i> {{ demande.service_support }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-pc-display"></i> {{ demande.machine.nom }}</small>
+                            <span>
+                                <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card kanban-column h-100">
+                <div class="card-header fw-bold text-center bg-success text-white">
+                    Terminée
+                </div>
+                <div class="card-body" style="min-height: 400px;">
+                    {% for demande in demandes_recentes %}
+                        {% if demande.statut == 'terminee' %}
+                        <div class="kanban-card p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">#{{ demande.numero_ticket }}</small>
+                                {% if demande.priorite %}
+                                <span class="priority-{{ demande.priorite|lower }}">{{ demande.priorite }}</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="ticket-title mt-2 mb-1">{{ demande.titre|default:demande.numero_ticket }}</h6>
+                            <small class="text-muted d-block"><i class="bi bi-person"></i> {{ demande.demandeur|default:"-" }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-folder"></i> {{ demande.service_support }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-pc-display"></i> {{ demande.machine.nom }}</small>
+                            <span>
+                                <a href="{% url 'demande_detail' demande.pk %}" class="ticket-eye" title="Voir détails"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'ticket_pdf' demande.pk %}" class="ticket-eye ms-2" title="Exporter PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS include for view switching -->
+<script src="{% static 'js/demande_dashboard.js' %}"></script>
 {% endblock %}
