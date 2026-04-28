@@ -40,7 +40,11 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     """Sauvegarder le profil utilisateur quand l'utilisateur est sauvegardé"""
-    instance.profile.save()
+    # Only save profile if it exists
+    try:
+        instance.profile.save()
+    except UserProfile.DoesNotExist:
+        pass
 
 # --- Pièces de rechange (Spare Parts) ---
 class SparePart(models.Model):
