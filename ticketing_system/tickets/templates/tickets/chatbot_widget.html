@@ -1,0 +1,142 @@
+{% load static %}
+<style>
+  #cb-btn {
+    position: fixed; bottom: 28px; right: 28px;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: #085041; color: #9FE1CB;
+    border: 1.5px solid #1D9E75; font-size: 22px;
+    cursor: pointer; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 12px rgba(8,80,65,.4);
+    transition: transform .15s;
+  }
+  #cb-btn:hover { transform: scale(1.08); }
+
+  #cb-window {
+    display: none; flex-direction: column;
+    position: fixed; bottom: 96px; right: 28px;
+    width: 370px; height: 500px;
+    background: #0a0f0d; border: 1px solid #1D9E75;
+    border-radius: 12px; z-index: 999;
+    overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  #cb-window.open { display: flex; }
+
+  #cb-header {
+    background: #04342C; border-bottom: 1px solid #1D9E75;
+    padding: 12px 16px; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  #cb-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #1D9E75; box-shadow: 0 0 6px #1D9E75;
+    animation: cbpulse 2s ease-in-out infinite; margin-right: 10px;
+  }
+  @keyframes cbpulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  #cb-title { color: #9FE1CB; font-size: 13px; font-weight: 600; }
+  #cb-subtitle { color: #5DCAA5; font-size: 11px; }
+  #cb-close { color: #5DCAA5; background: none; border: none; cursor: pointer; font-size: 18px; }
+
+  #cb-messages {
+    flex: 1; overflow-y: auto; padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cb-msg {
+    max-width: 82%; padding: 9px 13px; border-radius: 10px;
+    font-size: 13.5px; line-height: 1.55; animation: cbfade .2s ease;
+  }
+  @keyframes cbfade { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+  .cb-user { align-self: flex-end; background: #085041; color: #E1F5EE; border: 1px solid #0F6E56; border-bottom-right-radius: 3px; }
+  .cb-assistant { align-self: flex-start; background: #0d1a16; color: #9FE1CB; border: 1px solid #1a3a30; border-bottom-left-radius: 3px; white-space: pre-wrap; }
+
+  #cb-footer {
+    border-top: 1px solid #1a3a30; padding: 10px 12px;
+    display: flex; gap: 8px; background: #04342C;
+  }
+  #cb-input {
+    flex: 1; background: #0d1a16; color: #E1F5EE;
+    border: 1px solid #1D9E75; border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; outline: none;
+  }
+  #cb-input:focus { border-color: #5DCAA5; }
+  #cb-send {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: #1D9E75; color: #04342C;
+    border: none; cursor: pointer; font-size: 18px; font-weight: 700;
+  }
+  #cb-send:hover { background: #5DCAA5; }
+</style>
+
+<button id="cb-btn" onclick="cbToggle()" title="Assistant Maintenance">⚙</button>
+
+<div id="cb-window">
+  <div id="cb-header">
+    <div style="display:flex;align-items:center">
+      <div id="cb-dot"></div>
+      <div>
+        <div id="cb-title">ASSISTANT MAINTENANCE</div>
+        <div id="cb-subtitle">ollama · mistral · 100% local</div>
+      </div>
+    </div>
+    <button id="cb-close" onclick="cbToggle()">✕</button>
+  </div>
+
+  <div id="cb-messages">
+    <div class="cb-msg cb-assistant">Bonjour ! Je suis votre assistant technique. Comment puis-je vous aider ?</div>
+  </div>
+
+  <div id="cb-footer">
+    <input id="cb-input" type="text" placeholder="Posez votre question..."
+      onkeydown="if(event.key==='Enter') cbSend()">
+    <button id="cb-send" onclick="cbSend()">↑</button>
+  </div>
+</div>
+
+<script>
+const cbSession = 'session_{{ user.id }}_' + Date.now();
+
+function cbToggle() {
+  document.getElementById('cb-window').classList.toggle('open');
+  if (document.getElementById('cb-window').classList.contains('open'))
+    document.getElementById('cb-input').focus();
+}
+
+function cbAddMsg(role, text) {
+  const msgs = document.getElementById('cb-messages');
+  const d = document.createElement('div');
+  d.className = 'cb-msg cb-' + role;
+  d.textContent = text;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return d;
+}
+
+async function cbSend() {
+  const input = document.getElementById('cb-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  input.disabled = true;
+
+  cbAddMsg('user', msg);
+  const typing = cbAddMsg('assistant', '...');
+
+  try {
+    const res = await fetch("{% url 'chat_api' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ message: msg, session_id: cbSession })
+    });
+    const data = await res.json();
+    typing.textContent = data.reply || data.error;
+  } catch(e) {
+    typing.textContent = "Erreur de connexion. Vérifiez qu'Ollama est démarré.";
+  }
+
+  input.disabled = false;
+  input.focus();
+}
+</script>

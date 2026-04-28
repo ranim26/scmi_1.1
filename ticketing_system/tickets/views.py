@@ -1,6 +1,51 @@
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+@csrf_exempt
+def check_notifications(request):
+    # Exemple basique : retourne un nombre fictif de notifications non lues
+    # À adapter selon ton modèle Notification si besoin
+    return JsonResponse({"unread": 0, "notifications": []})
 # View to add a new spare part
 from .forms import SparePartForm
 from django.contrib.auth.decorators import login_required
+import requests
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+SYSTEM_PROMPT = """Tu es un assistant technique pour un système de ticketing industriel.
+Tu aides les opérateurs à créer des tickets, gérer les pièces détachées et les interventions.
+Réponds en français, de manière concise."""
+
+@login_required
+def chat_view(request):
+    return render(request, 'tickets/chat.html')
+
+@login_required
+@require_POST
+def chat_api(request):
+    data = json.loads(request.body)
+    user_message = data.get('message', '').strip()
+
+    if not user_message:
+        return JsonResponse({'error': 'Message vide'}, status=400)
+
+    # Appel à Ollama (tourne en local sur le port 11434)
+    response = requests.post('http://localhost:11434/api/chat', json={
+        "model": "mistral",   # ou "llama3.2"
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user",   "content": user_message}
+        ]
+    })
+
+    reply = response.json()['message']['content']
+    return JsonResponse({'reply': reply})
 @login_required
 def add_spare_part(request):
     if request.method == 'POST':

@@ -1766,5 +1766,78 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% block extra_js %}{% endblock %}
+    <!-- Chatbot Widget -->
+    <style>
+    #chatbot-widget {
+      position: fixed; bottom: 30px; right: 30px; width: 350px; max-width: 90vw;
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #0002; z-index: 9999;
+      font-family: Arial, sans-serif; display: flex; flex-direction: column; overflow: hidden;
+    }
+    #chatbot-header { background: #2d6cdf; color: #fff; padding: 10px; font-weight: bold; }
+    #chatbot-messages { flex: 1; padding: 10px; overflow-y: auto; max-height: 300px; }
+    #chatbot-input-row { display: flex; border-top: 1px solid #eee; }
+    #chatbot-input { flex: 1; border: none; padding: 10px; }
+    #chatbot-send { background: #2d6cdf; color: #fff; border: none; padding: 0 16px; cursor: pointer; }
+    </style>
+    <div id="chatbot-widget">
+      <div id="chatbot-header">Assistant Ticketing</div>
+      <div id="chatbot-messages"></div>
+      <div id="chatbot-input-row">
+        <input id="chatbot-input" type="text" placeholder="Votre question..." autocomplete="off" />
+        <button id="chatbot-send">Envoyer</button>
+      </div>
+    </div>
+    <script>
+    const messagesDiv = document.getElementById('chatbot-messages');
+    const input = document.getElementById('chatbot-input');
+    const sendBtn = document.getElementById('chatbot-send');
+    function addMessage(text, from) {
+      const msg = document.createElement('div');
+      msg.style.margin = '8px 0';
+      msg.style.textAlign = from === 'user' ? 'right' : 'left';
+      msg.innerHTML = `<span style="background:${from==='user'?'#e3f0ff':'#f3f3f3'};padding:6px 12px;border-radius:8px;display:inline-block;">${text}</span>`;
+      messagesDiv.appendChild(msg);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    sendBtn.onclick = async function() {
+      const message = input.value.trim();
+      if (!message) return;
+      addMessage(message, 'user');
+      input.value = '';
+      addMessage('⏳...', 'bot');
+      try {
+        const resp = await fetch('{% url 'chat_api' %}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+          body: JSON.stringify({message})
+        });
+        const data = await resp.json();
+        messagesDiv.lastChild.remove();
+        addMessage(data.reply || data.error || 'Erreur', 'bot');
+      } catch {
+        messagesDiv.lastChild.remove();
+        addMessage('Erreur de connexion.', 'bot');
+      }
+    };
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendBtn.click(); });
+    // CSRF helper for Django
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    </script>
+{% if user.is_authenticated %}
+{% include "tickets/chatbot_widget.html" %}
+{% endif %}
 </body>
 </html>

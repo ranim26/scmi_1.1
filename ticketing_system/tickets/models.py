@@ -151,6 +151,20 @@ def sync_machine_operator(sender, instance, **kwargs):
         for op in OperatorProfile.objects.filter(machines=instance):
             op.machines.remove(instance)
 
+class ChatMessage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20)   # 'user' ou 'assistant'
+    content = models.TextField()
+    session_id = models.CharField(max_length=100, default='default')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role}): {self.content[:30]}..."
+
+
 class TicketSupport(models.Model):
     titre = models.CharField(max_length=200, verbose_name="Titre du ticket", default="Sans titre")
     CATEGORIE_CHOICES = [

@@ -50,4 +50,7 @@ urlpatterns = [
     path('spare-parts/ajouter/', views.add_spare_part, name='add_spare_part'),
     # Gestion des réservations de stock
     path('stock/reservation/<int:reservation_id>/<str:action>/', views.manage_stock_reservation, name='manage_stock_reservation'),
+    # Chatbot API (Ollama)
+    path('chat/', views.chat_view, name='chat'),
+    path('chat/api/', views.chat_api, name='chat_api'),
 ]
