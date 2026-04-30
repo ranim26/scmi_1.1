@@ -69,3 +69,4 @@
 2026-04-28 18:01:22,733 [WARNING] slowrequests: POST /demandes/nouvelle/ — 5965.63 ms — 31 queries
 2026-04-30 09:18:35,178 [WARNING] slowrequests: POST /demandes/nouvelle/ — 5561.88 ms — 28 queries
 2026-04-30 09:23:46,075 [WARNING] slowrequests: GET /dashboard/ — 260.79 ms — 41 queries
+2026-04-30 09:39:20,485 [WARNING] slowrequests: POST /demandes/nouvelle/ — 5304.11 ms — 28 queries

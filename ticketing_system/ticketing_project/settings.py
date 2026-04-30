@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'crispy_forms',
     'crispy_bootstrap5',
+    'pwa',
     'tickets',
 ]
 
@@ -107,6 +108,58 @@ if DEBUG:
         "http://127.0.0.1:61112",
         "http://localhost:61112",
     ]
+
+# PWA Configuration
+PWA_APP_NAME = 'Ticketing Industriel'
+PWA_APP_DESCRIPTION = 'Système de gestion de tickets industriel'
+PWA_APP_THEME_COLOR = '#0D6EFD'
+PWA_APP_BACKGROUND_COLOR = '#FFFFFF'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_ORIENTATION = 'portrait'
+PWA_APP_START_URL = '/'
+PWA_APP_SCOPE = '/'
+PWA_APP_ICONS = [
+    {
+        'src': '/static/icons/icon-72x72.png',
+        'sizes': '72x72',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-96x96.png',
+        'sizes': '96x96',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-128x128.png',
+        'sizes': '128x128',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-144x144.png',
+        'sizes': '144x144',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-152x152.png',
+        'sizes': '152x152',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-192x192.png',
+        'sizes': '192x192',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-384x384.png',
+        'sizes': '384x384',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-512x512.png',
+        'sizes': '512x512',
+        'type': 'image/png'
+    }
+]
 
 # Logging pour requêtes lentes
 LOGGING = {

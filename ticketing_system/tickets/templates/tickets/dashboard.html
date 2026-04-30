@@ -48,6 +48,66 @@
   padding: 20px;
   border-left: 5px solid #dc3545;
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.1);
+}
+
+/* Mobile-specific styles for dashboard */
+@media (max-width: 768px) {
+  .alert-main-btn {
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+  
+  .alertes-container {
+    padding: 15px;
+    margin-top: 10px;
+  }
+  
+  .stats-card {
+    margin-bottom: 1rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+  
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .alert-main-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+  
+  .alertes-container {
+    padding: 12px;
+  }
+  
+  .stats-card .card-body {
+    padding: 0.75rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.8rem;
+  }
+  
+  .card-title {
+    font-size: 1rem;
+  }
+  
+  .h1, .h2, .h3, .h4, .h5, .h6 {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.alertes-container.show {
   animation: slideDown 0.3s ease;
 }
 
@@ -64,11 +124,22 @@
 
 .alertes-header {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
   font-weight: 600;
   color: #dc3545;
+}
+
+/* Custom progress bar styles */
+.custom-progress {
+  height: 10px;
+  background: #f1f3f4;
+  border-radius: 5px;
+}
+
+.progress-bar-custom {
+  transition: width 0.3s ease;
 }
 
 .alertes-header button {
@@ -270,8 +341,8 @@
                 <div class="d-flex align-items-center mb-3">
                   <div class="flex-grow-1">
                     <div class="fw-bold">{{ machine.nom }}</div>
-                    <div class="progress" style="height: 10px; background: #f1f3f4; border-radius: 5px;">
-                      <div class="progress-bar {{ risk_bg }}" role="progressbar" style="width: {{ risk_pct }}%;" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress custom-progress">
+                      <div class="progress-bar {{ risk_bg }} progress-bar-custom" role="progressbar" data-width="{{ risk_pct }}" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                   </div>
                   <div class="ms-3 text-end" style="min-width: 80px;">
@@ -296,8 +367,8 @@
                   <div class="d-flex align-items-center mb-3">
                     <div class="flex-grow-1">
                       <div class="fw-bold">{{ machine.nom }}</div>
-                      <div class="progress" style="height: 10px; background: #f1f3f4; border-radius: 5px;">
-                        <div class="progress-bar {{ risk_bg }}" role="progressbar" style="width: {{ risk_pct }}%;" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      <div class="progress custom-progress">
+                        <div class="progress-bar {{ risk_bg }} progress-bar-custom" role="progressbar" data-width="{{ risk_pct }}" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                       </div>
                     </div>
                     <div class="ms-3 text-end" style="min-width: 80px;">
@@ -322,8 +393,8 @@
                     <div class="d-flex align-items-center mb-3">
                       <div class="flex-grow-1">
                         <div class="fw-bold">{{ machine.nom }}</div>
-                        <div class="progress" style="height: 10px; background: #f1f3f4; border-radius: 5px;">
-                          <div class="progress-bar {{ risk_bg }}" role="progressbar" style="width: {{ risk_pct }}%;" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress custom-progress">
+                          <div class="progress-bar {{ risk_bg }} progress-bar-custom" role="progressbar" data-width="{{ risk_pct }}" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                       </div>
                       <div class="ms-3 text-end" style="min-width: 80px;">
@@ -347,8 +418,8 @@
                     <div class="d-flex align-items-center mb-3">
                       <div class="flex-grow-1">
                         <div class="fw-bold">{{ machine.nom }}</div>
-                        <div class="progress" style="height: 10px; background: #f1f3f4; border-radius: 5px;">
-                              <div class="progress-bar {{ risk_bg }}" role="progressbar" style="width: {{ risk_pct }}%;" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress custom-progress">
+                              <div class="progress-bar {{ risk_bg }} progress-bar-custom" role="progressbar" data-width="{{ risk_pct }}" aria-valuenow="{{ risk_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                       </div>
                       <div class="ms-3 text-end" style="min-width: 80px;">
@@ -786,5 +857,16 @@
     })
     .catch(error => console.error('Erreur de rafraîchissement:', error));
   }, 30000); // 30 secondes
+
+  // Set progress bar widths from data attributes
+  document.addEventListener('DOMContentLoaded', function() {
+    const progressBars = document.querySelectorAll('.progress-bar-custom');
+    progressBars.forEach(bar => {
+      const width = bar.getAttribute('data-width');
+      if (width) {
+        bar.style.width = width + '%';
+      }
+    });
+  });
 </script>
 {% endblock %}
