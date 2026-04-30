@@ -1771,8 +1771,27 @@
     </div>
 </div>
 
+
 {% else %}
-    {% block auth_content %}{% endblock %}
+<style>
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a2332 0%, #0d1b2a 100%) !important;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+  .login-bg-full {
+    min-height: 100vh;
+    min-width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+    <div class="login-bg-full">{% block auth_content %}{% endblock %}</div>
 {% endif %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
