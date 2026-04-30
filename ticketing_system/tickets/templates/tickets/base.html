@@ -40,6 +40,7 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
             background: linear-gradient(180deg, #1a2332 0%, #0d1b2a 100%);
             min-height: 100vh;
             position: fixed;
@@ -49,6 +50,18 @@
             overflow-x: hidden;
             box-shadow: 4px 0 15px rgba(0,0,0,0.2);
             max-height: 100vh;
+            transition: width 0.3s ease, min-width 0.3s ease;
+        }
+        #sidebar.collapsed {
+            width: 0 !important;
+            min-width: 0 !important;
+        }
+        .sidebar-inner {
+            width: var(--sidebar-width);
+            transition: width 0.3s ease;
+        }
+        #sidebar.collapsed .sidebar-inner {
+            width: 0;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
@@ -100,6 +113,45 @@
             top: 50%;
             transform: translateY(-50%);
         }
+        /* Toggle button */
+        #toggle-btn {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        #sidebar.collapsed ~ #main {
+            margin-left: 0;
+        }
+        #sidebar:not(.collapsed) ~ #main {
+            margin-left: var(--sidebar-width);
+        }
+        #toggle-btn:hover { 
+            background: #f8fafc; 
+            border-color: #cbd5e1;
+            transform: scale(1.05);
+        }
+        #toggle-btn span {
+            display: block;
+            width: 16px;
+            height: 2px;
+            background: #475569;
+            border-radius: 2px;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        #toggle-btn.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+        #toggle-btn.active span:nth-child(2) { opacity: 0; }
+        #toggle-btn.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
         .sidebar-section {
             padding: 10px 15px 5px;
             font-size: 0.7rem;
@@ -133,6 +185,10 @@
         .main-content {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
+            transition: margin-left 0.3s;
+        }
+        #sidebar.collapsed ~ #main {
+            margin-left: 0;
         }
         .topbar {
             background: white;
@@ -1576,6 +1632,17 @@
 [data-theme="dark"] .theme-toggle-btn * {
   color: #ecf0f1 !important;
 }
+[data-theme="dark"] #toggle-btn {
+  background: #2c3e50;
+  border-color: #495057;
+}
+[data-theme="dark"] #toggle-btn:hover {
+  background: #34495e;
+  border-color: #6c757d;
+}
+[data-theme="dark"] #toggle-btn span {
+  background: #ecf0f1;
+}
 
 [data-theme="dark"] .theme-toggle-btn:hover,
 [data-theme="dark"] .theme-toggle-btn:hover * {
@@ -1599,7 +1666,8 @@
 <body>
 {% if user.is_authenticated %}
 <!-- Sidebar -->
-<div class="sidebar d-flex flex-column">
+<div id="sidebar" class="sidebar d-flex flex-column">
+    <div class="sidebar-inner">
     <div class="sidebar-brand flex-shrink-0">
         <div class="brand-icon"></div>
         <h5>inission</h5>
@@ -1660,11 +1728,17 @@
             </button>
         </form>
     </div>
+    </div>
 </div>
 
 <!-- Main Content -->
-<div class="main-content">
+<div id="main" class="main-content">
     <div class="topbar">
+        <button id="toggle-btn" onclick="toggleSidebar()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
         <h6 class="mb-0 text-muted">{% block page_title %}{% endblock %}</h6>
         <div class="d-flex align-items-center gap-3">
             <a href="{% url 'demande_create' %}" class="btn btn-primary btn-sm">
@@ -1769,8 +1843,32 @@ function saveThemePreference(theme) {
     });
 }
 
+// Sidebar toggle functionality
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('toggle-btn');
+    sidebar.classList.toggle('collapsed');
+    btn.classList.toggle('active');
+    
+    // Position toggle button based on sidebar state
+    if (sidebar.classList.contains('collapsed')) {
+        btn.style.left = '15px';
+    } else {
+        btn.style.left = 'calc(var(--sidebar-width) + 15px)';
+    }
+    
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+}
+
 // Charger le thème au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize sidebar state - ensure it starts visible
+    localStorage.removeItem('sidebarCollapsed');
+    document.getElementById('sidebar').classList.remove('collapsed');
+    document.getElementById('toggle-btn').classList.remove('active');
+    
+    // Initialize toggle button position
+    document.getElementById('toggle-btn').style.left = 'calc(var(--sidebar-width) + 15px)';
     const savedTheme = getCookie('theme') || 'light';
     const html = document.documentElement;
     const themeIcon = document.getElementById('theme-icon');
