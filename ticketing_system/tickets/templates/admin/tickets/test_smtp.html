@@ -1,9 +1,0 @@
-{% extends "admin/base_site.html" %}
-{% block content %}
-  <h1>Tester l'envoi SMTP : {{ smtp.name }}</h1>
-  <form method="post">{% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="default">Envoyer un email de test</button>
-    <a href="../" class="button">Annuler</a>
-  </form>
-{% endblock %}

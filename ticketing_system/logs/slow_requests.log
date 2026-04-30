@@ -77,3 +77,16 @@
 2026-04-30 10:56:58,952 [WARNING] slowrequests: POST /login/ — 247.68 ms — 11 queries
 2026-04-30 11:12:29,873 [WARNING] slowrequests: POST /login/ — 300.56 ms — 11 queries
 2026-04-30 11:15:16,493 [WARNING] slowrequests: GET /dashboard/ — 297.16 ms — 225 queries
+2026-04-30 11:47:28,139 [WARNING] slowrequests: POST /login/ — 255.18 ms — 11 queries
+2026-04-30 11:50:17,019 [WARNING] slowrequests: POST /login/ — 249.83 ms — 11 queries
+2026-04-30 12:00:53,361 [WARNING] slowrequests: POST /login/ — 259.89 ms — 11 queries
+2026-04-30 12:02:29,169 [WARNING] slowrequests: POST /login/ — 275.65 ms — 11 queries
+2026-04-30 12:04:38,257 [WARNING] slowrequests: POST /login/ — 277.38 ms — 11 queries
+2026-04-30 13:04:24,569 [WARNING] slowrequests: POST /login/ — 267.04 ms — 11 queries
+2026-04-30 13:04:48,878 [WARNING] slowrequests: POST /login/ — 321.45 ms — 10 queries
+2026-04-30 13:05:00,690 [WARNING] slowrequests: POST /login/ — 258.78 ms — 1 queries
+2026-04-30 13:05:07,414 [WARNING] slowrequests: POST /login/ — 262.75 ms — 10 queries
+2026-04-30 13:06:07,607 [WARNING] slowrequests: GET /login/ — 273.98 ms — 0 queries
+2026-04-30 13:12:19,465 [WARNING] slowrequests: POST /login/ — 249.16 ms — 11 queries
+2026-04-30 13:41:05,274 [WARNING] slowrequests: POST /login/ — 272.50 ms — 11 queries
+2026-04-30 14:06:55,371 [WARNING] slowrequests: POST /login/ — 265.43 ms — 11 queries
