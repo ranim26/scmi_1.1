@@ -412,6 +412,20 @@ def dashboard(request):
         counts = [ data_dict.get((machine_id, m), 0) for m in months ]
         machine_data.append({'label': label, 'data': counts})
 
+    # --- Predictive Maintenance: Machines at Risk ---
+    from django.utils import timezone as dj_timezone
+    last_30_days = dj_timezone.now() - timedelta(days=30)
+    at_risk_qs = (
+        TicketSupport.objects.filter(date_creation__gte=last_30_days)
+        .values('machine__id', 'machine__nom')
+        .annotate(ticket_count=Count('id'))
+        .order_by('-ticket_count')[:3]
+    )
+    machines_at_risk = [
+        {'nom': m['machine__nom'], 'ticket_count': m['ticket_count']}
+        for m in at_risk_qs if m['ticket_count'] >= 2  # Threshold: 2+ tickets in 30 days
+    ]
+
     # --- Calculs pour dashboard ---
     # Critiques = tickets ouverts (non terminés/annulés) et priorite haute
     critiques = ticket_base_qs.filter(priorite='haute').exclude(statut__in=['terminee', 'annulee']).count()
@@ -468,6 +482,7 @@ def dashboard(request):
         'stock_critique_alertes': stock_critique_alertes,
         'stock_critique_count': stock_critique_count,
         'reservations_recentes': reservations_recentes,
+        'machines_at_risk': machines_at_risk,
     }
     return render(request, 'tickets/dashboard.html', context)
 
@@ -805,11 +820,11 @@ def demande_detail(request, pk):
 
 @login_required
 def demande_create(request):
-    """Créer une nouvelle demande d'intervention"""
+    """Créer une nouvelle demande d'intervention avec suggestion de pièces détachées"""
+    suggested_spare_parts = []
     if request.method == 'POST':
         post_data = request.POST.copy()
         files_data = request.FILES
-        # Si la catégorie n'est pas informatique et une machine est sélectionnée, préremplir code_machine
         categorie = post_data.get('categorie')
         machine_id = post_data.get('machine')
         if categorie != 'informatique' and machine_id:
@@ -817,123 +832,140 @@ def demande_create(request):
             try:
                 machine = Machine.objects.get(pk=machine_id)
                 post_data['code_machine'] = machine.reference
+                # Suggest spare parts based on ticket/machine history
+                # Find most used spare parts for this machine in past tickets
+                from .models import TicketSupport
+                recent_tickets = TicketSupport.objects.filter(machine=machine, spare_part__isnull=False).order_by('-date_creation')[:20]
+                part_counts = {}
+                for t in recent_tickets:
+                    if t.spare_part:
+                        part_counts[t.spare_part] = part_counts.get(t.spare_part, 0) + 1
+                suggested_spare_parts = sorted(part_counts, key=part_counts.get, reverse=True)[:3]
             except Machine.DoesNotExist:
                 pass
         form = TicketSupportForm(post_data, files_data)
-        if form.is_valid():
-            demande = form.save(commit=False)
-            from django.utils import timezone
-            # Remplit automatiquement le nom du demandeur avec l'utilisateur connecté
-            if request.user.is_authenticated:
-                demande.demandeur = request.user.get_full_name() or request.user.username
-            # Remplit date_ticket et heure_ticket si non fournis
-            if not demande.date_ticket:
-                demande.date_ticket = timezone.now().date()
-            if not demande.heure_ticket:
-                demande.heure_ticket = timezone.now().time()
-            demande.save()
-
-            # Gestion de la réservation de pièce
-            spare_part = form.cleaned_data.get('spare_part')
-            if spare_part:
-                if spare_part.quantite > 0:
-                    # Créer la réservation
-                    StockReservation.objects.create(
-                        piece=spare_part,
-                        ticket=demande,
-                        quantite_reservee=1,
-                        utilisateur=request.user if request.user.is_authenticated else None
-                    )
-                    
-                    # Mettre à jour le stock
-                    spare_part.quantite -= 1
-                    spare_part.save()
-                    
-                    # Alerte stock critique
-                    if spare_part.quantite < 3:
-                        messages.warning(request, f"⚠️ Attention, stock critique pour la pièce '{spare_part.nom}' (stock restant : {spare_part.quantite})")
-                    
-                    messages.success(request, f"✅ Pièce '{spare_part.nom}' réservée avec succès pour ce ticket.")
-                else:
-                    messages.error(request, f"❌ Impossible de réserver la pièce '{spare_part.nom}': stock épuisé.")
-            # Historique création
-            from .models import TicketHistory
-            TicketHistory.objects.create(
-                ticket=demande,
-                user=request.user if request.user.is_authenticated else None,
-                action="Création du ticket",
-                details=f"Ticket créé par {request.user.get_full_name() or request.user.username}",
-            )
-            # Sauvegarde des fichiers multiples
-            fichiers = request.FILES.getlist('fichiers')
-            from .models_ticket_file import TicketSupportFile
-            for fichier in fichiers:
-                TicketSupportFile.objects.create(ticket=demande, fichier=fichier)
-
-            # --- ENVOI EMAIL ALERT élargi ---
+    else:
+        form = TicketSupportForm()
+        machine_id = request.GET.get('machine')
+        if machine_id:
             try:
-                smtp_settings = SMTPSettings.objects.filter(active=True).first()
-                if smtp_settings:
-                    from django.contrib.auth.models import User
-                    connection = get_connection(
-                        host=smtp_settings.host,
-                        port=smtp_settings.port,
-                        username=smtp_settings.username,
-                        password=smtp_settings.password,
-                        use_tls=smtp_settings.use_tls,
-                        use_ssl=smtp_settings.use_ssl,
-                    )
-                    recipient_emails = set()
-                    # Opérateurs liés à la machine
-                    if demande.machine:
-                        recipient_emails.update([
-                            op.user.email for op in demande.machine.operatorprofile_set.all() if op.user and op.user.email
-                        ])
-                        # Superviseur du département
-                        if demande.machine.department:
-                            superviseurs = User.objects.filter(
-                                operatorprofile__role='superviseur',
-                                operatorprofile__department=demande.machine.department
-                            )
-                            for sup in superviseurs:
-                                if sup.email:
-                                    recipient_emails.add(sup.email)
-                    # Admins (toujours)
-                    admins = User.objects.filter(is_superuser=True)
-                    for admin in admins:
-                        if admin.email:
-                            recipient_emails.add(admin.email)
-                    recipient_list = list(recipient_emails)
-                    if recipient_list:
-                        subject = f"Nouvelle demande de ticket pour la machine {demande.machine.nom if demande.machine else ''}"
-                        message = (
-                            f"Bonjour,\n\n"
-                            f"Un nouveau ticket a été créé concernant la machine : {demande.machine.nom if demande.machine else 'N/A'}.\n\n"
-                            f"Détails du ticket :\n"
-                            f"- Sujet : {demande.titre}\n"
-                            f"- Description : {demande.description_probleme}\n"
-                            f"- Créé le : {demande.date_creation.strftime('%d/%m/%Y %H:%M')}\n\n"
-                            f"Merci de consulter la plateforme pour plus d'informations.\n\n"
-                            f"Cordialement,\nL'équipe support"
-                        )
-                        email = EmailMessage(
-                            subject=subject,
-                            body=message,
-                            from_email=smtp_settings.from_email,
-                            to=recipient_list,
-                            connection=connection
-                        )
-                        email.send(fail_silently=False)
-            except Exception as e:
-                # Log ou ignorer l'erreur d'envoi d'email
+                machine = Machine.objects.get(pk=machine_id)
+                from .models import TicketSupport
+                recent_tickets = TicketSupport.objects.filter(machine=machine, spare_part__isnull=False).order_by('-date_creation')[:20]
+                part_counts = {}
+                for t in recent_tickets:
+                    if t.spare_part:
+                        part_counts[t.spare_part] = part_counts.get(t.spare_part, 0) + 1
+                suggested_spare_parts = sorted(part_counts, key=part_counts.get, reverse=True)[:3]
+            except Machine.DoesNotExist:
                 pass
+
+    if request.method == 'POST' and form.is_valid():
+        demande = form.save(commit=False)
+        from django.utils import timezone
+        if request.user.is_authenticated:
+            demande.demandeur = request.user.get_full_name() or request.user.username
+        if not demande.date_ticket:
+            demande.date_ticket = timezone.now().date()
+        if not demande.heure_ticket:
+            demande.heure_ticket = timezone.now().time()
+        demande.save()
+
+        # Gestion de la réservation de pièce
+        spare_part = form.cleaned_data.get('spare_part')
+        if spare_part:
+            if spare_part.quantite > 0:
+                StockReservation.objects.create(
+                    piece=spare_part,
+                    ticket=demande,
+                    quantite_reservee=1,
+                    utilisateur=request.user if request.user.is_authenticated else None
+                )
+                spare_part.quantite -= 1
+                spare_part.save()
+                if spare_part.quantite < 3:
+                    messages.warning(request, f"⚠️ Attention, stock critique pour la pièce '{spare_part.nom}' (stock restant : {spare_part.quantite})")
+                messages.success(request, f"✅ Pièce '{spare_part.nom}' réservée avec succès pour ce ticket.")
+            else:
+                messages.error(request, f"❌ Impossible de réserver la pièce '{spare_part.nom}': stock épuisé.")
+        from .models import TicketHistory
+        TicketHistory.objects.create(
+            ticket=demande,
+            user=request.user if request.user.is_authenticated else None,
+            action="Création du ticket",
+            details=f"Ticket créé par {request.user.get_full_name() or request.user.username}",
+        )
+        fichiers = request.FILES.getlist('fichiers')
+        from .models_ticket_file import TicketSupportFile
+        for fichier in fichiers:
+            TicketSupportFile.objects.create(ticket=demande, fichier=fichier)
+
+        # --- ENVOI EMAIL ALERT élargi ---
+
+        try:
+            smtp_settings = SMTPSettings.objects.filter(active=True).first()
+            if smtp_settings:
+                from django.contrib.auth.models import User
+                connection = get_connection(
+                    host=smtp_settings.host,
+                    port=smtp_settings.port,
+                    username=smtp_settings.username,
+                    password=smtp_settings.password,
+                    use_tls=smtp_settings.use_tls,
+                    use_ssl=smtp_settings.use_ssl,
+                )
+                recipient_emails = set()
+                if demande.machine:
+                    recipient_emails.update([
+                        op.user.email for op in demande.machine.operatorprofile_set.all() if op.user and op.user.email
+                    ])
+                    if demande.machine.department:
+                        superviseurs = User.objects.filter(
+                            operatorprofile__role='superviseur',
+                            operatorprofile__department=demande.machine.department
+                        )
+                        for sup in superviseurs:
+                            if sup.email:
+                                recipient_emails.add(sup.email)
+                admins = User.objects.filter(is_superuser=True)
+                for admin in admins:
+                    if admin.email:
+                        recipient_emails.add(admin.email)
+                recipient_list = list(recipient_emails)
+                if recipient_list:
+                    subject = f"Nouvelle demande de ticket pour la machine {demande.machine.nom if demande.machine else ''}"
+                    message = (
+                        f"Bonjour,\n\n"
+                        f"Un nouveau ticket a été créé concernant la machine : {demande.machine.nom if demande.machine else 'N/A'}.\n\n"
+                        f"Détails du ticket :\n"
+                        f"- Sujet : {demande.titre}\n"
+                        f"- Description : {demande.description_probleme}\n"
+                        f"- Créé le : {demande.date_creation.strftime('%d/%m/%Y %H:%M')}\n\n"
+                        f"Merci de consulter la plateforme pour plus d'informations.\n\n"
+                        f"Cordialement,\nL'équipe support"
+                    )
+                    email = EmailMessage(
+                        subject=subject,
+                        body=message,
+                        from_email=smtp_settings.from_email,
+                        to=recipient_list,
+                        connection=connection
+                    )
+                    email.send(fail_silently=False)
+        except Exception as e:
+            # Log ou ignorer l'erreur d'envoi d'email
+            pass
 
             messages.success(request, f"Demande '{demande.numero_ticket}' créée avec succès!")
             return redirect('demande_detail', pk=demande.pk)
     else:
         form = TicketSupportForm()
     
-    return render(request, 'tickets/demande_form.html', {'form': form, 'action': 'Créer'})
+    return render(request, 'tickets/demande_form.html', {
+        'form': form,
+        'action': 'Créer',
+        'suggested_spare_parts': suggested_spare_parts
+    })
 
 
 @login_required
