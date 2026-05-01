@@ -1,3 +1,4 @@
+{% load static %}
 {% load permissions %}
 <!DOCTYPE html>
 <html lang="fr">
@@ -1668,9 +1669,8 @@
 <div id="sidebar" class="sidebar d-flex flex-column">
     <div class="sidebar-inner">
     <div class="sidebar-brand flex-shrink-0">
-        <div class="brand-icon"></div>
-        <h5>inission</h5>
-        <small>Supervision Industrielle</small>
+        <img src="{% static 'img/inission.png' %}" alt="Inission Logo" class="brand-icon" style="background: none; width: 150px; height: 100px; object-fit: contain; border-radius: 12px; border: none; box-shadow: none; display: flex; align-items: center; justify-content: center; margin: 0 auto 0;" />
+        <small style="margin-top: 0; display: block;">Supervision Industrielle</small>
     </div>
 
     <nav class="mt-2 flex-grow-1">
