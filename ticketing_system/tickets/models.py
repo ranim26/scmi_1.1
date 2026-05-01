@@ -170,6 +170,48 @@ class ChatMessage(models.Model):
 
 
 class TicketSupport(models.Model):
+    def update_sla_status(self):
+        """Update the SLA status based on due date and current time."""
+        from django.utils import timezone
+        today = timezone.now().date()
+        # Define SLA due date: use delai_souhaite if set, else 2 days after date_ticket
+        if self.delai_souhaite:
+            due_date = self.delai_souhaite
+        else:
+            due_date = self.date_ticket + datetime.timedelta(days=2)
+
+        days_left = (due_date - today).days
+        if days_left < 0:
+            self.sla_status = 'overdue'
+        elif days_left in [0, 1]:
+            self.sla_status = 'warning'
+        else:
+            self.sla_status = 'on_time'
+
+    def save(self, *args, **kwargs):
+        self.update_sla_status()
+        # Signal pour créer une notification d'alerte lors de la création d'un ticket
+        # Générer automatiquement le numéro de ticket si non fourni
+        if not self.numero_ticket:
+            from django.db import transaction
+            with transaction.atomic():
+                last_ticket = TicketSupport.objects.select_for_update().filter(
+                    numero_ticket__startswith='T'
+                ).order_by('-id').first()
+                if last_ticket and last_ticket.numero_ticket[1:].isdigit():
+                    last_number = int(last_ticket.numero_ticket[1:])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+                while True:
+                    candidate = f"T{new_number:04d}"
+                    if not TicketSupport.objects.filter(numero_ticket=candidate).exists():
+                        self.numero_ticket = candidate
+                        break
+                    new_number += 1
+        if self.machine:
+            self.code_machine = self.machine.reference
+        super().save(*args, **kwargs)
     titre = models.CharField(max_length=200, verbose_name="Titre du ticket", default="Sans titre")
     CATEGORIE_CHOICES = [
         ('industrielle', 'Industrielle'),
@@ -232,6 +274,19 @@ class TicketSupport(models.Model):
     # Pièce détachée réservée
     spare_part = models.ForeignKey(SparePart, on_delete=models.SET_NULL, null=True, blank=True, 
                                    related_name='tickets', verbose_name="Pièce détachée réservée")
+
+    # SLA Tracking
+    SLA_STATUS_CHOICES = [
+        ('on_time', '🟢 À l\'heure'),
+        ('warning', '🟠 Bientôt en retard'),
+        ('overdue', '🔴 En retard'),
+    ]
+    sla_status = models.CharField(
+        max_length=10,
+        choices=SLA_STATUS_CHOICES,
+        default='on_time',
+        verbose_name="Statut SLA"
+    )
     
     # Métadonnées
     date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")

@@ -8,6 +8,21 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
+        {% if overdue_count or warning_count %}
+        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" style="font-size:1.1em;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>
+                {% if overdue_count %}
+                    <strong>{{ overdue_count }}</strong> ticket(s) <span class="badge bg-danger">En retard</span>
+                {% endif %}
+                {% if warning_count %}
+                    {% if overdue_count %} &mdash; {% endif %}
+                    <strong>{{ warning_count }}</strong> ticket(s) <span class="badge bg-warning text-dark">Bientôt en retard</span>
+                {% endif %}
+                nécessitent une action immédiate !
+            </div>
+        </div>
+        {% endif %}
         <div class="d-flex justify-content-end mb-3">
             <a href="{% url 'export_tickets_excel' %}" class="btn btn-success">
                 <i class="bi bi-file-earmark-excel"></i> Exporter les tickets (Excel)
@@ -230,6 +245,13 @@
                 </select>
                 <span class="ticket-status bg-{{ demande.get_statut_class }}">{{ demande.get_statut_display }}</span>
             </form>
+            {% if demande.sla_status == 'on_time' %}
+                <span class="badge bg-success ms-2">🟢 À l'heure</span>
+            {% elif demande.sla_status == 'warning' %}
+                <span class="badge bg-warning text-dark ms-2">🟠 Bientôt en retard</span>
+            {% elif demande.sla_status == 'overdue' %}
+                <span class="badge bg-danger ms-2">🔴 En retard</span>
+            {% endif %}
             <span class="text-muted small ms-auto">{{ demande.date_creation|date:"d/m/Y" }}</span>
         </div>
     </div>
@@ -258,6 +280,15 @@
                 {% for demande in demandes_recentes %}
                 <tr>
                     <td>{{ demande.numero_ticket }}</td>
+                    <td>
+                        {% if demande.sla_status == 'on_time' %}
+                            <span class="badge bg-success">🟢 À l'heure</span>
+                        {% elif demande.sla_status == 'warning' %}
+                            <span class="badge bg-warning text-dark">🟠 Bientôt en retard</span>
+                        {% elif demande.sla_status == 'overdue' %}
+                            <span class="badge bg-danger">🔴 En retard</span>
+                        {% endif %}
+                    </td>
                     <td>{{ demande.titre|default:demande.numero_ticket }}</td>
                     <td>{{ demande.demandeur|default:"-" }}</td>
                     <td>{{ demande.service_support }}</td>

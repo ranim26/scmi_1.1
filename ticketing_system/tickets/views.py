@@ -736,12 +736,16 @@ def demande_dashboard(request):
         count=Count('id')
     ).order_by('-count')
 
+    overdue_count = tickets_qs.filter(sla_status='overdue').count()
+    warning_count = tickets_qs.filter(sla_status='warning').count()
     context = {
         'total': total, 'en_attente': en_attente, 'validees': validees,
         'en_cours': en_cours, 'terminees': terminees, 'annulees': annulees,
         'demandes_recentes': demandes_recentes,
         'stats_services': stats_services,
         'stats_natures': stats_natures,
+        'overdue_count': overdue_count,
+        'warning_count': warning_count,
         'request': request,  # pour pré-remplir la barre de recherche
     }
     return render(request, 'tickets/demande_dashboard.html', context)

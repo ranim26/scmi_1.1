@@ -17,6 +17,7 @@
                 <th>Action</th>
                 <th>Détails</th>
                 <th>Ticket</th>
+                <th>SLA</th>
             </tr>
         </thead>
         <tbody>
@@ -42,6 +43,17 @@
                 <td>{{ h.details }}</td>
                 <td>
                     <span class="badge badge-ticket">{{ h.ticket }}</span>
+                </td>
+                <td>
+                    {% if h.ticket.sla_status == 'on_time' %}
+                        <span class="badge bg-success">🟢 À l'heure</span>
+                    {% elif h.ticket.sla_status == 'warning' %}
+                        <span class="badge bg-warning text-dark">🟠 Bientôt en retard</span>
+                    {% elif h.ticket.sla_status == 'overdue' %}
+                        <span class="badge bg-danger">🔴 En retard</span>
+                    {% else %}
+                        <span class="badge bg-secondary">N/A</span>
+                    {% endif %}
                 </td>
             </tr>
             {% empty %}

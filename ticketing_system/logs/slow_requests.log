@@ -82,3 +82,11 @@
 2026-05-01 18:44:19,258 [WARNING] slowrequests: GET /login/ — 291.06 ms — 0 queries
 2026-05-01 18:49:23,651 [WARNING] slowrequests: POST /login/ — 485.99 ms — 11 queries
 2026-05-01 18:49:54,291 [WARNING] slowrequests: GET /dashboard/ — 458.13 ms — 225 queries
+2026-05-01 19:11:14,397 [WARNING] slowrequests: POST /login/ — 465.84 ms — 11 queries
+2026-05-01 19:17:22,890 [WARNING] slowrequests: POST /demandes/nouvelle/ — 12832.99 ms — 26 queries
+2026-05-01 19:17:52,263 [WARNING] slowrequests: POST /demandes/nouvelle/ — 11622.26 ms — 26 queries
+2026-05-01 19:17:56,920 [WARNING] slowrequests: POST /demandes/nouvelle/ — 10082.88 ms — 26 queries
+2026-05-01 19:35:10,612 [WARNING] slowrequests: POST /demandes/nouvelle/ — 10232.11 ms — 26 queries
+2026-05-01 19:36:09,067 [WARNING] slowrequests: POST /demandes/nouvelle/ — 539.44 ms — 33 queries
+2026-05-01 19:38:07,364 [WARNING] slowrequests: GET /dashboard/ — 249.42 ms — 41 queries
+2026-05-01 20:17:06,964 [WARNING] slowrequests: GET /demandes/dashboard/ — 301.34 ms — 11 queries
