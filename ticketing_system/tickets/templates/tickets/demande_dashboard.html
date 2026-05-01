@@ -8,6 +8,11 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{% url 'export_tickets_excel' %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Exporter les tickets (Excel)
+            </a>
+        </div>
         <div class="row g-3 mb-3">
             <div class="col-md-2 col-6">
                 <div class="card text-dark bg-light h-100">
