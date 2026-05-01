@@ -77,3 +77,5 @@
 2026-04-30 10:56:58,952 [WARNING] slowrequests: POST /login/ — 247.68 ms — 11 queries
 2026-04-30 11:12:29,873 [WARNING] slowrequests: POST /login/ — 300.56 ms — 11 queries
 2026-04-30 11:15:16,493 [WARNING] slowrequests: GET /dashboard/ — 297.16 ms — 225 queries
+2026-05-01 17:51:29,829 [WARNING] slowrequests: POST /login/ — 473.71 ms — 11 queries
+2026-05-01 17:52:02,469 [WARNING] slowrequests: GET /tickets/check-notifications/ — 259.44 ms — 0 queries
