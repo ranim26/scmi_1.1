@@ -8,9 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-ticketing-industriel-2024-change-in-production')
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -30,7 +30,7 @@ MIDDLEWARE = [
     'tickets.middleware.SlowRequestMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # Désactivé pour développement avec preview browser
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -91,22 +91,11 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# Configuration CORS pour le preview browser
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:51707",
-    "http://localhost:51707",
-    "http://127.0.0.1:61112",
-    "http://localhost:61112",
-]
-
-# Désactiver CSRF pour les requises depuis le preview browser en développement
+# Configuration pour la production Windows
 if DEBUG:
-    CORS_ALLOW_CREDENTIALS = True
     CSRF_TRUSTED_ORIGINS = [
-        "http://127.0.0.1:51707",
-        "http://localhost:51707",
-        "http://127.0.0.1:61112",
-        "http://localhost:61112",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
     ]
 
 # PWA Configuration
