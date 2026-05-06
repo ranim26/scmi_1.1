@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ticketing_db
+      POSTGRES_USER: ticketing_user
+      POSTGRES_PASSWORD: ticketing_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: gunicorn ticketing_project.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.25
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
