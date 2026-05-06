@@ -11,3 +11,4 @@ tzdata==2026.1
 gunicorn
 dj-database-url
 requests
+openpyxl
