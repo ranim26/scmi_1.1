@@ -681,7 +681,7 @@ def machine_delete(request, pk):
     
     # Compter les éléments associés (pour information seulement)
     demande_count = TicketSupport.objects.filter(machine=machine).count()
-    intervention_count = InterventionTechnique.objects.filter(numero_demande__machine=machine).count()
+    intervention_count = InterventionTechnique.objects.filter(numero_ticket__machine=machine).count()
     
     if request.method == 'POST':
         # Supprimer la machine et tout ce qui est associé (cascade)
