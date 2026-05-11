@@ -83,16 +83,10 @@ class SysMonModal {
                 '0.0.0.0'
             ];
             
-            // Allow local network ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-            const isLocalNetwork = 
-                hostname.startsWith('192.168.') ||
-                hostname.startsWith('10.') ||
-                hostname.startsWith('172.') ||
-                hostname.startsWith('169.254.') ||
-                hostname.endsWith('.local') ||
-                hostname.endsWith('.localhost');
+            // Proper IP range validation for local networks
+            const isValidLocalNetwork = this.isValidLocalNetwork(hostname);
 
-            if (!allowedHostnames.includes(hostname) && !isLocalNetwork) {
+            if (!allowedHostnames.includes(hostname) && !isValidLocalNetwork) {
                 throw new Error('Invalid hostname - only localhost and local networks allowed');
             }
 
@@ -130,6 +124,65 @@ class SysMonModal {
         if (this.loadingIndicator) {
             this.loadingIndicator.style.display = 'none';
         }
+    }
+
+    isValidLocalNetwork(hostname) {
+        // Check for local domain suffixes
+        if (hostname.endsWith('.local') || hostname.endsWith('.localhost')) {
+            return true;
+        }
+        
+        // Check for link-local addresses
+        if (hostname.startsWith('169.254.')) {
+            return true;
+        }
+        
+        // Handle IPv6 addresses - reject for now (add proper IPv6 support later if needed)
+        if (hostname.includes(':')) {
+            return false;
+        }
+        
+        // Check for private IP ranges using proper validation
+        const parts = hostname.split('.');
+        if (parts.length !== 4) {
+            return false;
+        }
+        
+        // Validate each part is a valid number between 0-255
+        const parsedParts = parts.map(part => {
+            const num = parseInt(part, 10);
+            return isNaN(num) || num < 0 || num > 255 ? null : num;
+        });
+        
+        // If any part is invalid, reject
+        if (parsedParts.some(part => part === null)) {
+            return false;
+        }
+        
+        const [a, b, c, d] = parsedParts;
+        
+        // Additional validation: reject invalid IPs like 0.0.0.0, 255.255.255.255
+        if ((a === 0 && b === 0 && c === 0 && d === 0) || 
+            (a === 255 && b === 255 && c === 255 && d === 255)) {
+            return false;
+        }
+        
+        // 192.168.0.0/16
+        if (a === 192 && b === 168) {
+            return true;
+        }
+        
+        // 10.0.0.0/8
+        if (a === 10) {
+            return true;
+        }
+        
+        // 172.16.0.0/12 (172.16-31.x.x)
+        if (a === 172 && b >= 16 && b <= 31) {
+            return true;
+        }
+        
+        return false;
     }
 
     showError() {

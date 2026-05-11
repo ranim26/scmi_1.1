@@ -31,7 +31,16 @@ class HTMLSanitizer {
             ['tbody', ['class']],
             ['tr', ['class']],
             ['td', ['class']],
-            ['th', ['class']]
+            ['th', ['class']],
+            ['h1', ['class']],
+            ['h2', ['class']],
+            ['h3', ['class']],
+            ['h4', ['class']],
+            ['h5', ['class']],
+            ['h6', ['class']],
+            ['blockquote', ['class']],
+            ['code', ['class']],
+            ['pre', ['class']]
         ]);
     }
 
@@ -40,11 +49,29 @@ class HTMLSanitizer {
             return '';
         }
 
-        // Create a temporary DOM element to parse HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
+        // Use DOMParser for safer HTML parsing to prevent execution during parsing
+        let doc;
+        try {
+            const parser = new DOMParser();
+            doc = parser.parseFromString(html, 'text/html');
+        } catch (e) {
+            // Fallback to safer method if DOMParser fails
+            const tempDiv = document.createElement('template');
+            tempDiv.innerHTML = html;
+            doc = tempDiv.content;
+        }
         
-        return this.sanitizeNode(tempDiv).innerHTML;
+        // Create a container element for sanitized content
+        const container = document.createElement('div');
+        const sanitizedNode = this.sanitizeNode(doc.body);
+        
+        if (sanitizedNode && sanitizedNode.nodeType === Node.ELEMENT_NODE) {
+            container.appendChild(sanitizedNode);
+        } else if (sanitizedNode) {
+            container.appendChild(sanitizedNode);
+        }
+        
+        return container.innerHTML;
     }
 
     sanitizeNode(node) {
@@ -111,30 +138,54 @@ class HTMLSanitizer {
 
         const attrName = name.toLowerCase();
         
-        // Remove dangerous attributes
+        // Remove dangerous attributes (fixed: removed href and src from dangerousAttrs)
         const dangerousAttrs = new Set([
-            'onclick', 'onload', 'onerror', 'onmouseover',
-            'onmouseout', 'onfocus', 'onblur', 'onchange',
-            'onsubmit', 'onreset', 'onselect', 'onunload',
+            'onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout', 'onfocus', 'onblur',
+            'onchange', 'onsubmit', 'onreset', 'onselect', 'onunload', 'onmouseenter', 'onmouseleave',
+            'onkeydown', 'onkeyup', 'onkeypress', 'onmousedown', 'onmouseup', 'onmousemove',
+            'ondblclick', 'oncontextmenu', 'onwheel', 'ondrag', 'ondrop', 'onscroll',
             'javascript:', 'vbscript:', 'data:'
         ]);
 
-        if (dangerousAttrs.has(attrName) || value.toLowerCase().includes('javascript:') || 
-            value.toLowerCase().includes('vbscript:') || value.toLowerCase().includes('data:')) {
+        if (dangerousAttrs.has(attrName)) {
             return '';
         }
 
-        // For href attributes, ensure they start with http, https, #, or mailto:
-        if (attrName === 'href') {
+        // For href and src attributes, ensure they start with safe protocols
+        if (attrName === 'href' || attrName === 'src') {
             const lowerValue = value.toLowerCase().trim();
             if (lowerValue.startsWith('javascript:') || lowerValue.startsWith('vbscript:') || 
-                lowerValue.startsWith('data:') || lowerValue.startsWith('file:')) {
-                return '#';
+                lowerValue.startsWith('data:') || lowerValue.startsWith('file:') ||
+                lowerValue.startsWith('ftp:') || lowerValue.startsWith('mailto:') ||
+                lowerValue.startsWith('vbscript:') || lowerValue.includes('javascript:') ||
+                lowerValue.includes('vbscript:') || lowerValue.includes('data:')) {
+                return attrName === 'href' ? '#' : '';
+            }
+            
+            // Additional validation for URLs
+            try {
+                const url = new URL(value, window.location.origin);
+                // Only allow http, https, and relative URLs
+                if (!['http:', 'https:'].includes(url.protocol) && !value.startsWith('/') && !value.startsWith('#')) {
+                    return attrName === 'href' ? '#' : '';
+                }
+            } catch (e) {
+                // Invalid URL, return safe default
+                return attrName === 'href' ? '#' : '';
             }
         }
 
-        // Basic sanitization for other attributes
-        return value.replace(/[<>"']/g, '');
+        // Enhanced sanitization for all attributes - prevent CSS injection and script execution
+        return value
+            .replace(/[<>"'`]/g, '')
+            .replace(/javascript\s*:/gi, '')
+            .replace(/vbscript\s*:/gi, '')
+            .replace(/data\s*:/gi, '')
+            .replace(/expression\s*\(/gi, '')
+            .replace(/@import/gi, '')
+            .replace(/behavior\s*:/gi, '')
+            .replace(/binding\s*:/gi, '')
+            .trim();
     }
 }
 

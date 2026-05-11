@@ -347,6 +347,14 @@ def is_admin(user):
     return user.is_superuser or user.is_staff
 
 
+def is_admin_or_supervisor(user):
+    """Vérifie si l'utilisateur est admin ou superviseur."""
+    if user.is_superuser or user.is_staff:
+        return True
+    profile = getattr(user, 'operatorprofile', None)
+    return profile and profile.role == 'superviseur'
+
+
 def home(request):
     """Home view that redirects to dashboard if authenticated, otherwise to login."""
     if request.user.is_authenticated:
@@ -368,10 +376,33 @@ def dashboard(request):
     reservations_recentes = StockReservation.objects.filter(
         est_consommee=False
     ).select_related('piece', 'ticket', 'utilisateur').order_by('-date_reservation')[:5]
+    
+    user = request.user
+    profile = getattr(user, 'operatorprofile', None)
+    if is_admin_or_supervisor(user):
+        if profile and profile.role == 'superviseur' and profile.department:
+            machine_base_qs = Machine.objects.filter(department=profile.department)
+            ticket_base_qs = TicketSupport.objects.filter(machine__department=profile.department)
+            intervention_base_qs = InterventionTechnique.objects.filter(numero_ticket__machine__department=profile.department)
+        else:
+            machine_base_qs = Machine.objects.all()
+            ticket_base_qs = TicketSupport.objects.all()
+            intervention_base_qs = InterventionTechnique.objects.all()
+    else:
+        if not profile:
+            messages.error(request, "Aucun profil opérateur trouvé.")
+            return redirect('dashboard')
+        # Redirect to choisir_machines if operator has no machines
+        if profile.machines.count() == 0:
+            messages.info(request, "Veuillez sélectionner vos machines pour commencer.")
+            return redirect('choisir_machines')
+        machine_base_qs = profile.machines.all()
+        ticket_base_qs = TicketSupport.objects.filter(machine__in=machine_base_qs)
+        intervention_base_qs = InterventionTechnique.objects.filter(numero_ticket__machine__in=machine_base_qs)
+
     # --- Calculs pour les variations dynamiques (optimisés) ---
     from datetime import timedelta
-    from django.db.models import Case, When, IntegerField, F, ExpressionWrapper, DurationField
-    from django.db.models.functions import TruncDate, TruncWeek
+    from django.db.models import Count, Q
     now = timezone.now()
 
     # Calculate date ranges
@@ -401,29 +432,6 @@ def dashboard(request):
     opened_pct = round(100 * (opened_this_week - opened_last_week) / opened_last_week) if opened_last_week else (100 if opened_this_week else 0)
     resolved_pct = round(100 * (resolved_this_week - resolved_last_week) / resolved_last_week) if resolved_last_week else (100 if resolved_this_week else 0)
     critiques_diff = critiques_today - critiques_yesterday
-
-    user = request.user
-    profile = getattr(user, 'operatorprofile', None)
-    if is_admin_or_supervisor(user):
-        if profile and profile.role == 'superviseur' and profile.department:
-            machine_base_qs = Machine.objects.filter(department=profile.department)
-            ticket_base_qs = TicketSupport.objects.filter(machine__department=profile.department)
-            intervention_base_qs = InterventionTechnique.objects.filter(numero_ticket__machine__department=profile.department)
-        else:
-            machine_base_qs = Machine.objects.all()
-            ticket_base_qs = TicketSupport.objects.all()
-            intervention_base_qs = InterventionTechnique.objects.all()
-    else:
-        if not profile:
-            messages.error(request, "Aucun profil opérateur trouvé.")
-            return redirect('dashboard')
-        # Redirect to choisir_machines if operator has no machines
-        if profile.machines.count() == 0:
-            messages.info(request, "Veuillez sélectionner vos machines pour commencer.")
-            return redirect('choisir_machines')
-        machine_base_qs = profile.machines.all()
-        ticket_base_qs = TicketSupport.objects.filter(machine__in=machine_base_qs)
-        intervention_base_qs = InterventionTechnique.objects.filter(numero_ticket__machine__in=machine_base_qs)
 
     total_tickets = ticket_base_qs.count()
     tickets_en_attente = ticket_base_qs.filter(statut='en_attente').count()
