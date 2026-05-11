@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 
 @login_required
-@csrf_exempt
 def check_notifications(request):
     # Exemple basique : retourne un nombre fictif de notifications non lues
     # À adapter selon ton modèle Notification si besoin
@@ -14,6 +13,7 @@ from django.contrib.auth.decorators import login_required
 import requests
 import json
 from django.http import JsonResponse, HttpResponse
+from django.conf import settings
 import openpyxl
 # --- Export Excel Pièces de rechange ---
 @login_required
@@ -83,24 +83,80 @@ def chat_view(request):
 @login_required
 @require_POST
 def chat_api(request):
-    data = json.loads(request.body)
-    user_message = data.get('message', '').strip()
+    try:
+        # Parse JSON with proper error handling
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Format JSON invalide'}, status=400)
+        
+        user_message = data.get('message', '').strip()
+        
+        # Validate message length and content
+        if not user_message:
+            return JsonResponse({'error': 'Message vide'}, status=400)
+        
+        if len(user_message) > 2000:  # Add reasonable length limit
+            return JsonResponse({'error': 'Message trop long (max 2000 caractères)'}, status=400)
+        
+        # Basic content sanitization
+        if any(word in user_message.lower() for word in ['<script>', 'javascript:', 'vbscript:']):
+            return JsonResponse({'error': 'Contenu non autorisé dans le message'}, status=400)
 
-    if not user_message:
-        return JsonResponse({'error': 'Message vide'}, status=400)
+        # Appel à Ollama (tourne en local sur le port 11434) with timeout and error handling
+        try:
+            response = requests.post(
+                'http://localhost:11434/api/chat', 
+                json={
+                    "model": "mistral",   # ou "llama3.2"
+                    "stream": False,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user",   "content": user_message}
+                    ]
+                },
+                timeout=30  # 30 second timeout
+            )
+            
+            response.raise_for_status()  # Raise exception for HTTP errors
+            
+        except requests.exceptions.Timeout:
+            return JsonResponse({'error': 'Le service de chat ne répond pas. Veuillez réessayer plus tard.'}, status=504)
+        except requests.exceptions.ConnectionError:
+            return JsonResponse({'error': 'Service de chat indisponible. Vérifiez que le serveur Ollama est en cours d\'exécution.'}, status=503)
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({'error': 'Erreur de communication avec le service de chat.'}, status=500)
 
-    # Appel à Ollama (tourne en local sur le port 11434)
-    response = requests.post('http://localhost:11434/api/chat', json={
-        "model": "mistral",   # ou "llama3.2"
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": user_message}
-        ]
-    })
-
-    reply = response.json()['message']['content']
-    return JsonResponse({'reply': reply})
+        # Parse response with error handling
+        try:
+            response_data = response.json()
+            reply = response_data.get('message', {}).get('content', '')
+            if not reply:
+                return JsonResponse({'error': 'Réponse vide du service de chat'}, status=500)
+                
+            # Sanitize the response to prevent XSS attacks
+            # Since this is server-side, we'll do basic sanitization
+            # Client-side should also use HTMLSanitizer for additional protection
+            reply = (reply
+                .replace('<', '&lt;')
+                .replace('>', '&gt;')
+                .replace('"', '&quot;')
+                .replace("'", '&#x27;')
+                .replace('/', '&#x2F;')
+            )
+                
+        except (json.JSONDecodeError, KeyError):
+            return JsonResponse({'error': 'Réponse invalide du service de chat'}, status=500)
+        
+        return JsonResponse({'reply': reply})
+        
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in chat_api: {str(e)}")
+        
+        return JsonResponse({'error': 'Erreur interne du serveur'}, status=500)
 @login_required
 def add_spare_part(request):
     if request.method == 'POST':
@@ -175,55 +231,96 @@ import datetime
 import datetime
 from django.shortcuts import get_object_or_404
 # --- Contrôle activation/désactivation machine ---
+from django.db import transaction
+
+@transaction.atomic
 def activate_machine(request, pk):
     if not is_admin_or_supervisor(request.user):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
         messages.error(request, "Vous n'avez pas la permission d'activer une machine.")
         return redirect('machine_list')
-    machine = get_object_or_404(Machine, pk=pk)
-    machine.actif = True
-    machine.save()
-    # Calculer quelques compteurs mis à jour pour la UI
-    nb_demandes = TicketSupport.objects.filter(machine=machine).count()
-    nb_ouverts = TicketSupport.objects.filter(machine=machine, statut__in=['en_attente', 'validee', 'en_cours']).count()
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'etat': 'active', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
-    messages.success(request, f"La machine {machine.nom} a été activée.")
-    # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
-    referer = request.META.get('HTTP_REFERER', '')
-    if 'dashboard' in referer:
-        return redirect('dashboard')
-    return redirect('machine_list')
+    
+    try:
+        # Use select_for_update to prevent race conditions
+        machine = get_object_or_404(Machine.objects.select_for_update(), pk=pk)
+        machine.actif = True
+        machine.save()
+        
+        # Optimized query for ticket counts
+        from django.db.models import Count, Q
+        ticket_stats = TicketSupport.objects.filter(machine=machine).aggregate(
+            nb_demandes=Count('id'),
+            nb_ouverts=Count('id', filter=Q(statut__in=['en_attente', 'validee', 'en_cours']))
+        )
+        nb_demandes = ticket_stats['nb_demandes']
+        nb_ouverts = ticket_stats['nb_ouverts']
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'etat': 'active', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
+        
+        messages.success(request, f"La machine {machine.nom} a été activée.")
+        # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
+        referer = request.META.get('HTTP_REFERER', '')
+        if 'dashboard' in referer:
+            return redirect('dashboard')
+        return redirect('machine_list')
+    
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in activate_machine for pk={pk}: {str(e)}")
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': "Erreur lors de l'activation de la machine."}, status=500)
+        messages.error(request, "Erreur lors de l'activation de la machine.")
+        return redirect('machine_list')
 
 
+@transaction.atomic
 def deactivate_machine(request, pk):
     if not is_admin_or_supervisor(request.user):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
         messages.error(request, "Vous n'avez pas la permission de désactiver une machine.")
         return redirect('machine_list')
-    machine = get_object_or_404(Machine, pk=pk)
-    machine.actif = False
-    machine.save()
-    # Calculer quelques compteurs mis à jour pour la UI
-    nb_demandes = TicketSupport.objects.filter(machine=machine).count()
-    nb_ouverts = TicketSupport.objects.filter(machine=machine, statut__in=['en_attente', 'validee', 'en_cours']).count()
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'etat': 'inactive', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
-    messages.success(request, f"La machine {machine.nom} a été désactivée.")
-    # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
-    referer = request.META.get('HTTP_REFERER', '')
-    if 'dashboard' in referer:
-        return redirect('dashboard')
-    return redirect('machine_list')
-
-def is_admin_or_supervisor(user):
-    """Vérifie si l'utilisateur est admin ou superviseur."""
-    if user.is_superuser or user.is_staff:
-        return True
-    profile = getattr(user, 'operatorprofile', None)
-    return profile and profile.role == 'superviseur'
+    
+    try:
+        # Use select_for_update to prevent race conditions
+        machine = get_object_or_404(Machine.objects.select_for_update(), pk=pk)
+        machine.actif = False
+        machine.save()
+        
+        # Optimized query for ticket counts
+        from django.db.models import Count, Q
+        ticket_stats = TicketSupport.objects.filter(machine=machine).aggregate(
+            nb_demandes=Count('id'),
+            nb_ouverts=Count('id', filter=Q(statut__in=['en_attente', 'validee', 'en_cours']))
+        )
+        nb_demandes = ticket_stats['nb_demandes']
+        nb_ouverts = ticket_stats['nb_ouverts']
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'etat': 'inactive', 'machine_pk': machine.pk, 'nb_demandes': nb_demandes, 'nb_ouverts': nb_ouverts})
+        
+        messages.success(request, f"La machine {machine.nom} a été désactivée.")
+        # Redirige vers le dashboard si l'utilisateur vient du dashboard, sinon vers la liste des machines
+        referer = request.META.get('HTTP_REFERER', '')
+        if 'dashboard' in referer:
+            return redirect('dashboard')
+        return redirect('machine_list')
+    
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in deactivate_machine for pk={pk}: {str(e)}")
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': "Erreur lors de la désactivation de la machine."}, status=500)
+        messages.error(request, "Erreur lors de la désactivation de la machine.")
+        return redirect('machine_list')
 
 # Vue pour choisir les machines de l'opérateur
 @login_required
@@ -243,14 +340,6 @@ def choisir_machines(request):
         form = OperatorProfileForm(instance=profile)
 
     return render(request, 'tickets/choisir_machines.html', {'form': form})
-
-
-def is_admin_or_supervisor(user):
-    """Vérifie si l'utilisateur est admin ou superviseur."""
-    if user.is_superuser or user.is_staff:
-        return True
-    profile = getattr(user, 'operatorprofile', None)
-    return profile and profile.role == 'superviseur'
 
 
 def is_admin(user):
@@ -279,33 +368,38 @@ def dashboard(request):
     reservations_recentes = StockReservation.objects.filter(
         est_consommee=False
     ).select_related('piece', 'ticket', 'utilisateur').order_by('-date_reservation')[:5]
-    # --- Calculs pour les variations dynamiques ---
+    # --- Calculs pour les variations dynamiques (optimisés) ---
     from datetime import timedelta
+    from django.db.models import Case, When, IntegerField, F, ExpressionWrapper, DurationField
+    from django.db.models.functions import TruncDate, TruncWeek
     now = timezone.now()
 
-    # (ticket_base_qs is set below, then we do calculations)
-
-    # Now that ticket_base_qs is defined and all early returns are handled, do dynamic calculations
-    last_week_start = now - timedelta(days=now.weekday() + 7)
-    last_week_end = last_week_start + timedelta(days=6)
+    # Calculate date ranges
+    week_start = now - timedelta(days=now.weekday())
+    last_week_start = week_start - timedelta(days=7)
+    last_week_end = week_start - timedelta(days=1)
     yesterday = now - timedelta(days=1)
 
-    opened_this_week = ticket_base_qs.filter(date_creation__gte=now - timedelta(days=now.weekday())).count() if 'ticket_base_qs' in locals() else 0
-    opened_last_week = ticket_base_qs.filter(date_creation__date__gte=last_week_start.date(), date_creation__date__lte=last_week_end.date()).count() if 'ticket_base_qs' in locals() else 0
-    if opened_last_week:
-        opened_pct = round(100 * (opened_this_week - opened_last_week) / opened_last_week)
-    else:
-        opened_pct = 100 if opened_this_week else 0
+    # Optimized single query for weekly statistics
+    weekly_stats = ticket_base_qs.aggregate(
+        opened_this_week=Count('id', filter=Q(date_creation__gte=week_start)),
+        opened_last_week=Count('id', filter=Q(date_creation__date__gte=last_week_start.date(), date_creation__date__lte=last_week_end.date())),
+        resolved_this_week=Count('id', filter=Q(statut='terminee', date_modification__gte=week_start)),
+        resolved_last_week=Count('id', filter=Q(statut='terminee', date_modification__date__gte=last_week_start.date(), date_modification__date__lte=last_week_end.date())),
+        critiques_today=Count('id', filter=Q(priorite='haute', date_creation__date=now.date())),
+        critiques_yesterday=Count('id', filter=Q(priorite='haute', date_creation__date=yesterday.date()))
+    )
 
-    resolved_this_week = ticket_base_qs.filter(statut='terminee', date_modification__gte=now - timedelta(days=now.weekday())).count() if 'ticket_base_qs' in locals() else 0
-    resolved_last_week = ticket_base_qs.filter(statut='terminee', date_modification__date__gte=last_week_start.date(), date_modification__date__lte=last_week_end.date()).count() if 'ticket_base_qs' in locals() else 0
-    if resolved_last_week:
-        resolved_pct = round(100 * (resolved_this_week - resolved_last_week) / resolved_last_week)
-    else:
-        resolved_pct = 100 if resolved_this_week else 0
+    # Calculate percentages
+    opened_this_week = weekly_stats['opened_this_week']
+    opened_last_week = weekly_stats['opened_last_week']
+    resolved_this_week = weekly_stats['resolved_this_week']
+    resolved_last_week = weekly_stats['resolved_last_week']
+    critiques_today = weekly_stats['critiques_today']
+    critiques_yesterday = weekly_stats['critiques_yesterday']
 
-    critiques_today = ticket_base_qs.filter(priorite='haute', date_creation__date=now.date()).count() if 'ticket_base_qs' in locals() else 0
-    critiques_yesterday = ticket_base_qs.filter(priorite='haute', date_creation__date=yesterday.date()).count() if 'ticket_base_qs' in locals() else 0
+    opened_pct = round(100 * (opened_this_week - opened_last_week) / opened_last_week) if opened_last_week else (100 if opened_this_week else 0)
+    resolved_pct = round(100 * (resolved_this_week - resolved_last_week) / resolved_last_week) if resolved_last_week else (100 if resolved_this_week else 0)
     critiques_diff = critiques_today - critiques_yesterday
 
     user = request.user
@@ -522,7 +616,12 @@ def machine_list(request):
     except EmptyPage:
         machines = paginator.page(paginator.num_pages)
 
-    return render(request, 'tickets/machine_list.html', {'machines': machines, 'paginator': paginator})
+    return render(request, 'tickets/machine_list.html', {
+        'machines': machines, 
+        'paginator': paginator,
+        'sysmon_enabled': getattr(settings, 'SYSMON_ENABLED', False),
+        'sysmon_url': getattr(settings, 'SYSMON_URL', 'https://localhost:8888/')
+    })
 
 
 @login_required
@@ -595,6 +694,39 @@ def machine_delete(request, pk):
 @login_required
 def machine_details(request, pk):
     machine = get_object_or_404(Machine, pk=pk)
+    
+    # Check user permissions
+    user_profile = getattr(request.user, 'operatorprofile', None)
+    
+    # Allow access if:
+    # 1. User is superuser
+    # 2. User is admin
+    # 3. User is supervisor
+    # 4. User is the assigned operator for this machine
+    # 5. User is in the same department as the machine
+    # 6. User has this machine in their allowed machines list
+    
+    has_permission = False
+    
+    if request.user.is_superuser or request.user.is_staff:
+        has_permission = True
+    elif user_profile:
+        if user_profile.role in ['admin', 'superviseur']:
+            has_permission = True
+        elif user_profile.role == 'operateur':
+            # Check if user is assigned to this machine
+            if machine.operator == user_profile:
+                has_permission = True
+            # Check if user has this machine in their machines list
+            elif user_profile.machines.filter(pk=machine.pk).exists():
+                has_permission = True
+            # Check if user is in the same department as the machine
+            elif machine.department and user_profile.department == machine.department:
+                has_permission = True
+    
+    if not has_permission:
+        return JsonResponse({'error': 'Accès non autorisé'}, status=403)
+    
     return render(request, 'tickets/partials/machine_details_modal.html', {'machine': machine})
 # ============ Gestion des utilisateurs (Admin uniquement) ============
 

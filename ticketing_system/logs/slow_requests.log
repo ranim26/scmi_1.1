@@ -90,3 +90,6 @@
 2026-05-01 19:36:09,067 [WARNING] slowrequests: POST /demandes/nouvelle/ — 539.44 ms — 33 queries
 2026-05-01 19:38:07,364 [WARNING] slowrequests: GET /dashboard/ — 249.42 ms — 41 queries
 2026-05-01 20:17:06,964 [WARNING] slowrequests: GET /demandes/dashboard/ — 301.34 ms — 11 queries
+2026-05-11 09:37:54,168 [WARNING] slowrequests: POST /login/?next=/machines/ — 322.37 ms — 11 queries
+2026-05-11 09:37:54,485 [WARNING] slowrequests: GET /machines/ — 310.87 ms — 5 queries
+2026-05-11 09:59:33,673 [WARNING] slowrequests: POST /login/?next=/machines/ — 299.83 ms — 11 queries

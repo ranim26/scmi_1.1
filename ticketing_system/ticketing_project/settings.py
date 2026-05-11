@@ -150,6 +150,15 @@ PWA_APP_ICONS = [
     }
 ]
 
+# SysMon Configuration
+SYSMON_URL = os.environ.get('SYSMON_URL', 'https://localhost:8888/')
+SYSMON_ENABLED = os.environ.get('SYSMON_ENABLED', 'False').lower() == 'true'
+
+# Ensure logs directory exists
+import os
+LOGS_DIR = BASE_DIR / 'logs'
+os.makedirs(LOGS_DIR, exist_ok=True)
+
 # Logging pour requêtes lentes
 LOGGING = {
     'version': 1,
@@ -161,7 +170,7 @@ LOGGING = {
         'slow_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': str(BASE_DIR / 'logs' / 'slow_requests.log'),
+            'filename': str(LOGS_DIR / 'slow_requests.log'),
             'formatter': 'verbose',
         },
     },

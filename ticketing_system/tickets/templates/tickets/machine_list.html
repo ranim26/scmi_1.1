@@ -1,7 +1,12 @@
 {% extends 'tickets/base.html' %}
 {% load permissions %}
+{% load static %}
 {% block title %}Machines - Ticketing Industriel{% endblock %}
 {% block page_title %}<i class="bi bi-cpu me-2"></i>Parc machines{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sysmon-modal.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="row g-4">
@@ -40,6 +45,11 @@
                         data-machine-id="{{ machine.pk }}">
                     <i class="bi bi-info-circle me-1"></i>Détails
                 </button>
+                {% if sysmon_enabled %}
+                <div class="d-grid mb-2">
+                    <button class="btn btn-primary btn-sm" style="width:100%;" onclick="openSysMonModal()">Détails SysMon</button>
+                </div>
+                {% endif %}
                 <a href="{% url 'machine_edit' machine.pk %}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-pencil"></i>
                 </a>
@@ -82,7 +92,15 @@
     </nav>
  </div>
 {% endif %}
-<!-- Modal Détails Machine placée hors de la boucle -->
+<!-- SysMon Modal -->
+<div id="sysmonModal" class="sysmon-modal">
+    <div class="sysmon-modal-content">
+        <button type="button" class="sysmon-modal-close" onclick="closeSysMonModal()">&times;</button>
+        <div class="sysmon-modal-iframe-container">
+            <iframe id="sysmonIframe" class="sysmon-modal-iframe" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="machineDetailModal" tabindex="-1" aria-labelledby="machineDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -99,22 +117,122 @@
 
 
 {% block extra_js %}
+<div id="sysmon-config" data-enabled="{% if sysmon_enabled %}true{% else %}false{% endif %}" data-url="{{ sysmon_url|escapejs }}" style="display:none;"></div>
+<script src="{% static 'js/html-sanitizer.js' %}"></script>
+<script src="{% static 'js/sysmon-modal.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    function getCSRFToken() {
+        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        return token ? token.value : '';
+    }
+
+    // Debounce function to prevent multiple rapid requests
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Unified function to load machine details
+    function loadMachineDetails(machineId, retryCount = 0) {
+        const modalBody = document.getElementById('machineDetailModalBody');
+        const maxRetries = 3;
+        
+        if (retryCount === 0) {
+            modalBody.innerHTML = '<div class="text-center text-muted py-4">Chargement...</div>';
+        }
+        
+        // Sanitize the URL and use textContent for security
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        fetch('/machines/' + encodeURIComponent(machineId) + '/details/', {
+            signal: controller.signal,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Machine non trouvée');
+                } else if (response.status === 403) {
+                    throw new Error('Accès non autorisé');
+                } else if (response.status >= 500) {
+                    throw new Error('Erreur serveur interne');
+                } else {
+                    throw new Error(`Erreur HTTP ${response.status}`);
+                }
+            }
+            return response.text();
+        })
+        .then(html => { 
+            // Use HTML sanitizer for security
+            if (window.HTMLSanitizer) {
+                const sanitizer = new HTMLSanitizer();
+                modalBody.innerHTML = sanitizer.sanitize(html);
+            } else {
+                // Fallback - basic sanitization
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = html;
+                modalBody.innerHTML = tempDiv.innerHTML;
+            }
+        })
+        .catch(error => { 
+            clearTimeout(timeoutId);
+            console.error('Error loading machine details:', error);
+            
+            let errorMessage = 'Erreur lors du chargement des détails.';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Le chargement a pris trop de temps. Veuillez réessayer.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            const retryButton = retryCount < maxRetries ? 
+                `<button type="button" class="btn btn-sm btn-outline-primary mt-3" onclick="retryMachineDetails('${machineId}', ${retryCount + 1})">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Réessayer (${maxRetries - retryCount} restantes)
+                </button>` : '';
+            
+            modalBody.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="text-danger mb-3">
+                        <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="text-danger">${errorMessage}</div>
+                    ${retryButton}
+                </div>
+            `; 
+        });
+    }
+
+    // Debounced retry function
+    const retryMachineDetails = debounce(function(machineId, retryCount = 0) {
+        loadMachineDetails(machineId, retryCount);
+    }, 500);
+
+    // Make retry function globally available
+    window.retryMachineDetails = retryMachineDetails;
+
     var detailModal = document.getElementById('machineDetailModal');
     if (detailModal) {
-    detailModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var machineId = button.getAttribute('data-machine-id');
-        var modalBody = document.getElementById('machineDetailModalBody');
-        modalBody.innerHTML = '<div class="text-center text-muted py-4">Chargement...</div>';
-        fetch('/machines/' + machineId + '/details/')
-        .then(response => response.text())
-        .then(html => { modalBody.innerHTML = html; })
-        .catch(() => { modalBody.innerHTML = '<div class="text-danger">Erreur lors du chargement des détails.</div>'; });
-    });
+        detailModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var machineId = button.getAttribute('data-machine-id');
+            loadMachineDetails(machineId);
+        });
     }
 });
- </script>
+</script>
 {% endblock %}
 {% endblock %}

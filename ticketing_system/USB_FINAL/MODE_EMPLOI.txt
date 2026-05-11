@@ -1,0 +1,50 @@
+================================================
+ SYSMON AGENT - MODE D'EMPLOI CLE USB
+================================================
+
+CONTENU DE LA CLE USB
+----------------------
+SysMonAgent_Win10.exe  -> Windows 10 / 11
+SysMonAgent_Win7.exe   -> Windows 7
+SysMonAgent_XP.bat     -> Windows XP
+SysMonAgent_XP.vbs     -> Windows XP (lanceur)
+INSTALL.bat            -> Installeur Windows (auto)
+UNINSTALL.bat          -> Desinstalleur Windows
+sysmon_agent.py        -> Agent Linux
+install_linux.sh       -> Installeur Linux
+uninstall_linux.sh     -> Desinstalleur Linux
+MODE_EMPLOI.txt        -> Ce fichier
+
+
+WINDOWS (XP / 7 / 10 / 11)
+-----------------------------
+1. Brancher la cle USB
+2. Ouvrir la cle dans l'explorateur
+3. Clic DROIT sur INSTALL.bat
+4. "Executer en tant qu'administrateur"
+5. Attendre "INSTALLATION REUSSIE"
+6. Appuyer sur ENTREE
+7. Debrancher la cle
+
+
+LINUX
+------
+1. Brancher la cle USB
+2. Ouvrir un terminal
+3. Taper :
+   sudo bash /media/[votre-user]/[cle]/install_linux.sh
+4. Attendre la fin
+
+
+DESINSTALLER
+-------------
+Windows : clic DROIT sur UNINSTALL.bat > administrateur
+Linux   : sudo bash uninstall_linux.sh
+
+
+VERIFICATION
+-------------
+Dashboard : http://10.22.30.149:8888
+La machine apparait dans les 30 secondes.
+
+================================================

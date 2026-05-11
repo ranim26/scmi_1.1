@@ -1,0 +1,74 @@
+/* Style pour l'historique des tickets façon dark mode moderne */
+.ticket-history-container {
+    background: #faf7f7;
+    color: #060101;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 16px rgba(229, 220, 220, 0.4);
+}
+.ticket-history-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+    background: transparent;
+}
+.ticket-history-table th, .ticket-history-table td {
+    background: #fffcfc;
+    padding: 16px 12px;
+    border: none;
+    border-radius: 8px;
+    vertical-align: middle;
+}
+.ticket-history-table th {
+    color: #060101;
+    font-weight: 600;
+    background: #f3f0f0;
+}
+.ticket-history-table tr {
+    box-shadow: 0 1px 4px rgba(253, 251, 251, 0.15);
+}
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+.badge-action {
+    background: #e3eefd;
+    color: #2563eb;
+}
+.badge-status {
+    background: #e6f9ed;
+    color: #059669;
+}
+.badge-user {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+.badge-ticket {
+    background: #232323;
+    color: #fff;
+    border: 1px solid #444;
+    font-family: monospace;
+    font-size: 0.98em;
+}
+.pagination {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+    gap: 6px;
+}
+.pagination .page-link {
+    background: #292929;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.pagination .page-link.active, .pagination .page-link:hover {
+    background: #2563eb;
+    color: #fff;
+}
